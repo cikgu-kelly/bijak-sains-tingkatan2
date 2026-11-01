@@ -207,7 +207,8 @@ function save_(p) {
 
 /* ================= RANKING LIVE =================
  * Mata setiap soalan = 40 saat − masa menjawab betul (ketepatan milisaat).
- * Lebih pantas = lebih banyak mata. Seri dipecahkan oleh jumlah masa terpendek. */
+ * Kedudukan: lebih banyak soalan dijawab betul = lebih tinggi (dikira LIVE walaupun belum habis).
+ * Jika sama, mata kelajuan menentukan. Seri dipecahkan oleh jumlah masa terpendek. */
 function rank_() {
   const cache = CacheService.getScriptCache();
   const hit = cache.get('RANK');
@@ -217,9 +218,10 @@ function rank_() {
   const last = sh.getLastRow();
   if (last < 2) return [];
   const list = sh.getRange(2, 1, last - 1, 19).getValues()
-    .filter(r => r[0] && Number(r[16]) > 0)
+    .filter(r => r[0] && (Number(r[18]) > 0 || Number(r[16]) > 0))
     .map(r => ({ nama: String(r[0]), kelas: String(r[1]), mata: Number(r[16]) || 0, masa: Number(r[17]) || 0, betul: Number(r[18]) || 0 }))
-    .sort((a, b) => b.mata - a.mata || a.masa - b.masa || a.nama.localeCompare(b.nama))
+    
+    .sort((a, b) => b.betul - a.betul || b.mata - a.mata || a.masa - b.masa || a.nama.localeCompare(b.nama))
     .slice(0, 50);
   cache.put('RANK', JSON.stringify(list), 10);
   return list;

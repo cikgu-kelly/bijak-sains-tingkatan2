@@ -141,6 +141,8 @@ input::placeholder{color:#4d6777}
 @keyframes scan{from{top:0}to{top:100%}}
 .note{line-height:1.6;font-size:.95rem}
 .note mark{background:transparent;color:var(--cyan);text-shadow:0 0 8px var(--cyan);border-bottom:1px solid var(--cyan)}
+.warnNote{margin:.8rem 0 .2rem;padding:.6rem;border-radius:8px;border:1px dashed var(--yellow);color:var(--yellow);font-size:.85rem;text-align:center;line-height:1.5;animation:pulseW 1.6s ease-in-out infinite}
+@keyframes pulseW{50%{box-shadow:0 0 14px rgba(255,230,0,.45)}}
 .ans{margin:.6rem 0;padding:.6rem;border-radius:8px;border:1px solid #3dff9a;color:#3dff9a}
 #fx{position:fixed;inset:0;pointer-events:none;z-index:65}
 .big{font-size:2.2rem;text-align:center;font-family:'Orbitron';color:var(--cyan);text-shadow:0 0 14px var(--cyan);margin:1rem 0}
@@ -232,7 +234,7 @@ input::placeholder{color:#4d6777}
         <div class="sub" id="netStat" style="text-align:center;font-size:.75rem;margin-top:.5rem"></div>
       </form>
 
-      <div class="rank"><h3>🏆 RANKING LIVE</h3><div class="rk-sub">Mata = kelajuan menjawab betul · dikemas kini setiap 15 saat</div><ol id="rankStart"><li>Memuatkan...</li></ol></div>
+      <div class="rank"><h3>🏆 RANKING LIVE</h3><div class="rk-sub">Lebih banyak soalan dijawab betul = ranking lebih tinggi · dikira LIVE walaupun belum habis</div><ol id="rankStart"><li>Memuatkan...</li></ol></div>
       <button class="secret" id="btnSecret" title="">●</button>
     </div>
   </section>
@@ -249,7 +251,7 @@ input::placeholder{color:#4d6777}
       </div>
       <div id="certSlot"></div>
       <div class="mods" id="mods"></div>
-      <div class="rank"><h3>🏆 RANKING LIVE</h3><div class="rk-sub">Mata = kelajuan menjawab betul · dikemas kini setiap 15 saat</div><ol id="rankHub"><li>Memuatkan...</li></ol></div>
+      <div class="rank"><h3>🏆 RANKING LIVE</h3><div class="rk-sub">Lebih banyak soalan dijawab betul = ranking lebih tinggi · dikira LIVE walaupun belum habis</div><ol id="rankHub"><li>Memuatkan...</li></ol></div>
       <button class="btn ghost" id="btnLogout">⏻ LOG KELUAR</button>
     </div>
   </section>
@@ -257,7 +259,7 @@ input::placeholder{color:#4d6777}
   <!-- SKRIN KUIZ -->
   <section class="screen" id="screenQuiz">
     <div class="glass">
-      <div class="qhead"><span id="qMod">MODUL</span><span class="tag" id="qProg">1/5</span></div>
+      <div class="qhead"><span id="qMod">MODUL</span><span class="tag" id="qRank" style="margin-left:auto;margin-right:.4rem">🏆 #-</span><span class="tag" id="qProg">1/5</span></div>
       <div class="timer" id="timer"><i id="tbar"></i></div>
       <div class="tsec" id="tsec">20s</div>
       <div class="ctx" id="qCtx"></div>
@@ -315,6 +317,7 @@ input::placeholder{color:#4d6777}
     <h2>◈ DATA HOLOGRAM // NOTA</h2>
     <div class="ans" id="noteAns"></div>
     <div class="note" id="noteText"></div>
+    <div class="warnNote">📖 <b>SILA BACA NOTA INI DAN FAHAMKAN.</b><br>Soalan yang sama akan ditanya semula sebentar lagi!</div>
     <div class="row">
       <button class="btn ghost" id="btnSpeak">🔊 ULANG</button>
       <button class="btn" id="btnNext">TERUS ▶</button>
@@ -667,9 +670,10 @@ function renderRank(list){
   const html=!list.length?'<li>Belum ada markah. Jadilah yang pertama!</li>':list.map((r,i)=>
     `<li class="${r.nama===me?'me ':''}g${i+1}"><span class="no">${i<3?['🥇','🥈','🥉'][i]:i+1}</span><span class="nm">${r.nama.replace(/</g,'&lt;')}<small>${r.kelas.replace(/</g,'&lt;')} · ${r.betul} betul · ${r.masa.toFixed(1)}s</small></span><span class="pt">${r.mata.toFixed(3)}<small>mata</small></span></li>`).join('');
   ['rankStart','rankHub'].forEach(id=>{ const e=$(id); if(e) e.innerHTML=html });
+  const qr=$('qRank'); if(qr){ const pos=list.findIndex(r=>r.nama===me); qr.textContent='🏆 #'+(pos>=0?pos+1:'-') }
 }
 function loadRank(){ api('rank',{}).then(renderRank).catch(()=>{ ['rankStart','rankHub'].forEach(id=>{const e=$(id); if(e&&/Memuatkan/.test(e.textContent)) e.innerHTML='<li>Ranking tidak dapat dimuatkan.</li>'}) }) }
-setInterval(()=>{ if(!document.hidden && !$('screenQuiz').classList.contains('active')) loadRank() },15000);
+setInterval(()=>{ if(!document.hidden) loadRank() },15000);
 function validName(n){ return n.length>=6 && /^[A-Z@'.\-\/ ]+$/.test(n) && n.split(' ').filter(w=>w.length>=2).length>=2 }
 
 /* ========= LOG MASUK ========= */
@@ -837,7 +841,7 @@ function answer(t,btn){
     } else {
       setTimeout(()=>toast('✔ Betul ('+(ms/1000).toFixed(2)+'s) · rekod terbaik '+(bm[S.cur]/1000).toFixed(2)+'s'),50);
     }
-    saveSession(); starBurst(btn); toast('✔ TEPAT!'); setTimeout(nextQ,1300);
+    saveSession(); Sync.push(); setTimeout(loadRank,3500); starBurst(btn); toast('✔ TEPAT!'); setTimeout(nextQ,1300);
   } else {
     if(btn) btn.classList.add('bad');
     S.tried.add(S.cur); S.queue.push(S.cur); saveSession();
@@ -853,10 +857,12 @@ function showNote(q,timeout){
   $('noteAns').innerHTML=(timeout?'⏱ Masa tamat. ':'')+'Jawapan betul: <b>'+q.a+'</b>';
   $('noteText').innerHTML=q.note;
   $('modalNote').classList.add('show');
-  speak('Jawapan yang betul ialah: '+q.a+'. '+q.note.replace(/<[^>]+>/g,''));
+  const bn=$('btnNext'); let w=5; bn.disabled=true; bn.textContent='BACA NOTA ('+w+')';
+  clearInterval(bn._t); bn._t=setInterval(()=>{ w--; if(w<=0){ clearInterval(bn._t); bn.disabled=false; bn.textContent='SAYA FAHAM ▶' } else bn.textContent='BACA NOTA ('+w+')' },1000);
+  speak('Jawapan yang betul ialah: '+q.a+'. '+q.note.replace(/<[^>]+>/g,'')+'. Sila baca nota ini dan fahamkan. Soalan yang sama akan ditanya semula sebentar lagi.');
 }
 $('btnSpeak').onclick=()=>{ const q=S.m.q[S.cur]; speak('Jawapan yang betul ialah: '+q.a+'. '+q.note.replace(/<[^>]+>/g,'')) };
-$('btnNext').onclick=()=>{ speechSynthesis.cancel(); $('modalNote').classList.remove('show'); nextQ() };
+$('btnNext').onclick=()=>{ if($('btnNext').disabled) return; speechSynthesis.cancel(); $('modalNote').classList.remove('show'); nextQ() };
 
 function endModule(){
   const total=S.m.q.length, skor=S.firstTry.size;
