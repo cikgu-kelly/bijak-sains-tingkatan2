@@ -168,6 +168,16 @@ input::placeholder{color:#4d6777}
 .certwrap img{display:block;width:100%;height:auto}
 .locked{margin-top:1rem;padding:.8rem;border-radius:10px;border:1px dashed var(--muted);color:var(--muted);font-size:.85rem;text-align:center}
 @media(max-width:420px){.title{font-size:1.35rem}.brand{font-size:.8rem}.zoomlbl{display:none}}
+.rank{margin-top:1.2rem;padding:.8rem;border-radius:12px;border:1px solid var(--cyan);box-shadow:0 0 12px rgba(0,240,255,.25)}
+.rank h3{margin:0 0 .3rem;font-size:.95rem;color:var(--yellow);letter-spacing:1px;text-align:center}
+.rank .rk-sub{font-size:.7rem;opacity:.7;text-align:center;margin-bottom:.5rem}
+.rank ol{list-style:none;margin:0;padding:0;max-height:320px;overflow:auto}
+.rank li{display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border-bottom:1px dashed rgba(255,255,255,.12);font-size:.82rem}
+.rank li .no{width:2rem;text-align:center;font-weight:900;color:var(--cyan)}
+.rank li .nm{flex:1;line-height:1.2}.rank li .nm small{display:block;opacity:.65;font-size:.7rem}
+.rank li .pt{font-weight:900;color:var(--yellow);text-align:right}.rank li .pt small{display:block;opacity:.6;font-weight:400;font-size:.65rem;color:inherit}
+.rank li.me{background:rgba(255,43,214,.15);border-radius:8px}
+.rank li.g1 .no{color:var(--yellow)}.rank li.g2 .no{color:#d9e2ec}.rank li.g3 .no{color:#e0a46b}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
@@ -208,7 +218,8 @@ input::placeholder{color:#4d6777}
         </div>
         <div class="field">
           <label for="nama">// 2. NAMA PENUH</label>
-          <input id="nama" autocomplete="name" placeholder="Contoh: Ahmad bin Ali">
+          <input id="nama" autocomplete="name" placeholder="Contoh: Ahmad Firdaus bin Ali">
+          <small style="opacity:.75;font-size:.75rem">Gunakan NAMA PENUH SEBENAR seperti dalam kad pengenalan / sijil lahir. Nama yang sama digunakan untuk log masuk semula.</small>
           <div class="err" id="errNama"></div>
         </div>
         <div class="field">
@@ -216,9 +227,11 @@ input::placeholder{color:#4d6777}
           <input id="kelas" placeholder="Contoh: 2 Bestari">
           <div class="err" id="errKelas"></div>
         </div>
-        <button class="btn" type="submit">▶ MULA</button>
+        <button class="btn" type="submit" id="btnMula">▶ MULA</button>
+        <div class="sub" id="netStat" style="text-align:center;font-size:.75rem;margin-top:.5rem"></div>
       </form>
 
+      <div class="rank"><h3>🏆 RANKING LIVE</h3><div class="rk-sub">Mata = kelajuan menjawab betul · dikemas kini setiap 15 saat</div><ol id="rankStart"><li>Memuatkan...</li></ol></div>
       <button class="secret" id="btnSecret" title="">●</button>
     </div>
   </section>
@@ -235,6 +248,7 @@ input::placeholder{color:#4d6777}
       </div>
       <div id="certSlot"></div>
       <div class="mods" id="mods"></div>
+      <div class="rank"><h3>🏆 RANKING LIVE</h3><div class="rk-sub">Mata = kelajuan menjawab betul · dikemas kini setiap 15 saat</div><ol id="rankHub"><li>Memuatkan...</li></ol></div>
       <button class="btn ghost" id="btnLogout">⏻ LOG KELUAR</button>
     </div>
   </section>
@@ -314,7 +328,7 @@ input::placeholder{color:#4d6777}
 const KEY = 'neonQuiz_v2_200';
 const Store = {
   load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || {user:null, results:[], settings:{zoom:1}} }catch(e){ return {user:null,results:[],settings:{zoom:1}} } },
-  save(d){ localStorage.setItem(KEY, JSON.stringify(d)) },
+  save(d){ localStorage.setItem(KEY, JSON.stringify(d)); if(window.Sync) Sync.push() },
   reset(){ localStorage.removeItem(KEY) }
 };
 let data = Store.load();
@@ -585,7 +599,7 @@ function renderHub(){
   MODULES.forEach(m=>{
     const p=data.progress[m.id], ss=data.sessions[m.id];
     const b=document.createElement('button'); b.className='mod';
-    const lbl = ss && ss.queue.length ? 'SAMBUNG ▶ baki '+ss.queue.length : (p?'✔ '+p.skor+'/'+m.q.length:'MULA ▶');
+    const lbl = ss && ss.queue.length ? 'SAMBUNG ▶ baki '+ss.queue.length : (p?'✔ '+p.skor+'/'+m.q.length+' · ULANG ↻':'MULA ▶');
     b.innerHTML=`<div><b>${m.nama}</b><small>${m.desc} · ${m.q.length} soalan</small></div>
       <span class="st ${p||ss?'done':''}" ${ss?'style="border-color:var(--yellow);color:var(--yellow);box-shadow:0 0 8px var(--yellow)"':''}>${lbl}</span>`;
     b.onclick=()=>startModule(m);
@@ -600,19 +614,89 @@ function renderHub(){
   if(st.allDone) $('btnHubCert').onclick=openCert;
 }
 
+/* ========= SAMBUNGAN PANGKALAN DATA (Google Sheets + Drive) ========= */
+// Jika index.html dihoskan DI LUAR Google Apps Script (cth. GitHub Pages), tampal URL Web App di sini:
+const SCRIPT_URL = '';
+function api(action,payload){
+  return new Promise((res,rej)=>{
+    if(window.google && google.script && google.script.run){
+      google.script.run.withSuccessHandler(res).withFailureHandler(e=>rej(e)).api(action,payload);
+    } else if(SCRIPT_URL){
+      fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,payload})})
+        .then(r=>r.json()).then(j=>j.ok?res(j.data):rej(new Error(j.error))).catch(rej);
+    } else rej(new Error('Pelayan belum disambungkan.'));
+  });
+}
+function modStats(){
+  return MODULES.map(m=>{
+    const p=data.progress[m.id], ss=data.sessions[m.id];
+    let acc=null, status='BELUM', betul=0, salah=0;
+    if(ss && ((ss.firstTry||[]).length || (ss.tried||[]).length)){
+      betul=ss.firstTry.length; salah=ss.tried.length; status='SEDANG';
+      acc=Math.round(betul/Math.max(betul+salah,1)*100);
+    } else if(p){ betul=p.skor; salah=p.total-p.skor; status='SELESAI'; acc=Math.round(p.skor/p.total*100) }
+    return {id:m.id,nama:m.nama.split(':')[0].trim(),total:m.q.length,status,betul,salah,acc};
+  });
+}
+function snapshot(){
+  const st=stats();
+  return {
+    save:{mata:data.mata||0,masaJawab:data.masaJawab||0,scored:data.scored||{},best:data.best||{},progress:data.progress,sessions:data.sessions,results:data.results,active:data.active||null,certId:data.certId||null,certShown:!!data.certShown},
+    summary:{...st,modTotal:MODULES.length,mata:+(data.mata||0).toFixed(3),masaJawab:+((data.masaJawab||0)/1000).toFixed(3)}, modStats:modStats()
+  };
+}
+var Sync={t:null,
+  push(){ if(!data.user) return; clearTimeout(this.t); this.t=setTimeout(()=>this.send(),1200) },
+  send(){
+    if(!data.user) return Promise.resolve();
+    clearTimeout(this.t);
+    const u=data.user, logs=(data.pendingLogs||[]).splice(0);
+    localStorage.setItem(KEY, JSON.stringify(data));
+    const jobs=[api('save',{nama:u.nama,state:snapshot()})];
+    if(logs.length) jobs.push(api('log',{nama:u.nama,kelas:u.kelas,rows:logs}).catch(e=>{ data.pendingLogs=logs.concat(data.pendingLogs||[]); throw e }));
+    return Promise.all(jobs).then(()=>net(true)).catch(()=>{ net(false); localStorage.setItem(KEY, JSON.stringify(data)) });
+  },
+  log(row){ if(!data.user) return; row.masa=new Date().toLocaleString('ms-MY',{hour12:false}); (data.pendingLogs=data.pendingLogs||[]).push(row); this.push() }
+};
+function net(ok){ const e=$('netStat'); if(e) e.textContent=ok?'● Disimpan ke pangkalan data':'○ Tiada sambungan — data akan dihantar semula'; }
+/* ========= RANKING LIVE ========= */
+const MAX_PT = 40; // 20s soalan + 20s klue
+function renderRank(list){
+  const me=data.user&&data.user.nama;
+  const html=!list.length?'<li>Belum ada markah. Jadilah yang pertama!</li>':list.map((r,i)=>
+    `<li class="${r.nama===me?'me ':''}g${i+1}"><span class="no">${i<3?['🥇','🥈','🥉'][i]:i+1}</span><span class="nm">${r.nama.replace(/</g,'&lt;')}<small>${r.kelas.replace(/</g,'&lt;')} · ${r.betul} betul · ${r.masa.toFixed(1)}s</small></span><span class="pt">${r.mata.toFixed(3)}<small>mata</small></span></li>`).join('');
+  ['rankStart','rankHub'].forEach(id=>{ const e=$(id); if(e) e.innerHTML=html });
+}
+function loadRank(){ api('rank',{}).then(renderRank).catch(()=>{ ['rankStart','rankHub'].forEach(id=>{const e=$(id); if(e&&/Memuatkan/.test(e.textContent)) e.innerHTML='<li>Ranking tidak dapat dimuatkan.</li>'}) }) }
+setInterval(()=>{ if(!document.hidden && !$('screenQuiz').classList.contains('active')) loadRank() },15000);
+function validName(n){ return n.length>=6 && /^[A-Z@'.\-\/ ]+$/.test(n) && n.split(' ').filter(w=>w.length>=2).length>=2 }
+
 /* ========= LOG MASUK ========= */
-$('loginForm').onsubmit = e=>{
+$('loginForm').onsubmit = async e=>{
   e.preventDefault();
-  const nama=$('nama').value.trim(), kelas=$('kelas').value.trim();
-  $('errNama').textContent = nama.length<3 ? '! Sila masukkan nama penuh.' : '';
+  const nama=$('nama').value.toUpperCase().replace(/\s+/g,' ').trim(), kelas=$('kelas').value.toUpperCase().replace(/\s+/g,' ').trim();
+  $('errNama').textContent = !validName(nama) ? '! Sila masukkan NAMA PENUH sebenar (sekurang-kurangnya 2 perkataan, huruf sahaja).' : '';
   $('errKelas').textContent = !kelas ? '! Sila masukkan kelas.' : '';
   $('errFoto').textContent = !Cam.foto ? '! Sila ambil gambar selfie dahulu.' : '';
-  if(nama.length<3 || !kelas || !Cam.foto) return;
-  Cam.stop();
-  data.user = {nama:nama.toUpperCase(), kelas:kelas.toUpperCase(), foto:Cam.foto, masa:new Date().toISOString()};
-  Store.save(data);
-  toast('✔ Data disimpan. Selamat datang!');
-  renderHub(); show('screenHub');
+  if(!validName(nama) || !kelas || !Cam.foto) return;
+  const btn=$('btnMula'); btn.disabled=true; btn.textContent='⏳ MENYAMBUNG KE PANGKALAN DATA...';
+  try{
+    const r = await api('login',{nama,kelas,foto:Cam.foto,modules:MODULES.map(m=>({id:m.id,nama:m.nama.split(':')[0].trim(),total:m.q.length}))});
+    Cam.stop();
+    data = {user:null,results:[],settings:data.settings||{zoom:1},progress:{},sessions:{}};
+    if(r.state){
+      const st=r.state;
+      data.progress=st.progress||{}; data.sessions=st.sessions||{}; data.results=st.results||[];
+      data.active=st.active||null; data.mata=st.mata||0; data.masaJawab=st.masaJawab||0; data.scored=st.scored||{}; data.best=st.best||{}; data.certId=st.certId||undefined; data.certShown=!!st.certShown;
+    }
+    data.user = {nama:r.nama, kelas:r.kelas, foto:Cam.foto, fotoUrl:r.fotoUrl, masa:new Date().toISOString()};
+    Store.save(data); net(true);
+    toast(r.baru ? '✔ Pendaftaran berjaya. Selamat datang!' : '👋 Selamat kembali, '+r.nama+'! Data anda dipulihkan.');
+    const resume = data.active && MODULES.find(m=>m.id===data.active && data.sessions[m.id] && data.sessions[m.id].queue.length);
+    if(resume) startModule(resume); else { renderHub(); show('screenHub') }
+  }catch(err){
+    $('errNama').textContent='! '+(err && err.message ? err.message : 'Gagal menyambung. Semak internet dan cuba lagi.');
+  }finally{ btn.disabled=false; btn.textContent='▶ MULA' }
 };
 /* ========= KAMERA SELFIE ========= */
 const Cam={stream:null,foto:null,
@@ -657,7 +741,13 @@ $('camFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return;
   const img=new Image(); img.onload=()=>{ Cam.setFrom(img,img.naturalWidth,img.naturalHeight,false); URL.revokeObjectURL(img.src) };
   img.src=URL.createObjectURL(f); e.target.value='' };
 
-$('btnLogout').onclick=()=>{ stopTimer(); data.user=null; data.active=null; Store.save(data); $('loginForm').reset(); Cam.clear(); show('screenStart'); toast('Log keluar berjaya.') };
+$('btnLogout').onclick=async ()=>{
+  stopTimer(); const b=$('btnLogout'); b.disabled=true; b.textContent='⏳ MENYIMPAN...';
+  await Sync.send();
+  if((data.pendingLogs||[]).length && !confirm('Sebahagian data belum dihantar (tiada internet). Log keluar juga?')){ b.disabled=false; b.textContent='⏻ LOG KELUAR'; return }
+  const z=data.settings; Store.reset(); data={user:null,results:[],settings:z||{zoom:1},progress:{},sessions:{}}; localStorage.setItem(KEY, JSON.stringify(data));
+  b.disabled=false; b.textContent='⏻ LOG KELUAR';
+  $('loginForm').reset(); Cam.clear(); show('screenStart'); toast('Log keluar berjaya. Data selamat di pangkalan data.') };
 
 /* ========= ENJIN KUIZ ========= */
 const T=20;
@@ -679,7 +769,7 @@ function pauseQuiz(){
   $('modalNote').classList.remove('show');
   toast('⏸ Kemajuan disimpan. Sambung bila-bila masa.');
 }
-$('btnPause').onclick=()=>{ pauseQuiz(); renderHub(); show('screenHub') };
+$('btnPause').onclick=()=>{ pauseQuiz(); renderHub(); show('screenHub'); setTimeout(loadRank,1500) };
 function startModule(m){
   const ss=data.sessions[m.id];
   if(ss && ss.queue && ss.queue.length){
@@ -708,7 +798,7 @@ function nextQ(){
     const b=document.createElement('button'); b.className='opt'; b.textContent=t;
     b.onclick=()=>answer(t,b); $('opts').appendChild(b);
   });
-  S.locked=false; S.phase='q'; $('btnSkip').disabled=false;
+  S.locked=false; S.phase='q'; $('btnSkip').disabled=false; S.qStart=Date.now();
   saveSession();
   startTimer();
 }
@@ -727,8 +817,25 @@ function answer(t,btn){
   if(S.locked) return; S.locked=true; stopTimer(); $('btnSkip').disabled=true;
   const q=S.m.q[S.cur];
   document.querySelectorAll('.opt').forEach(b=>{ b.disabled=true; if(b.textContent===q.a) b.classList.add('ok') });
+  Sync.log({bab:S.m.nama.split(':')[0].trim(),soalan:q.q,jawapan:t===null?'(MASA TAMAT)':t,betul:q.a,keputusan:t===q.a?'BETUL':'SALAH',cubaan:S.tried.has(S.cur)?'ULANGAN':'PERTAMA'});
   if(t===q.a){
     if(!S.tried.has(S.cur)) S.firstTry.add(S.cur);
+    data.scored=data.scored||{}; const sc=data.scored[S.m.id]=data.scored[S.m.id]||[];
+    data.best=data.best||{}; const bm=data.best[S.m.id]=data.best[S.m.id]||{};
+    const ms=Math.min(Date.now()-(S.qStart||Date.now()), MAX_PT*1000-1);
+    if(!sc.includes(S.cur)){
+      const pt=(MAX_PT*1000-ms)/1000;
+      sc.push(S.cur); bm[S.cur]=ms; data.mata=(data.mata||0)+pt; data.masaJawab=(data.masaJawab||0)+ms;
+      setTimeout(()=>toast('✔ TEPAT! +'+pt.toFixed(3)+' mata ('+(ms/1000).toFixed(2)+'s)'),50);
+    } else if(bm[S.cur]==null){
+      bm[S.cur]=ms; // rekod lama tanpa masa terbaik: simpan sebagai rujukan
+    } else if(ms<bm[S.cur]){
+      const gain=(bm[S.cur]-ms)/1000;
+      data.mata=(data.mata||0)+gain; data.masaJawab=(data.masaJawab||0)-(bm[S.cur]-ms); bm[S.cur]=ms;
+      setTimeout(()=>toast('🚀 REKOD BARU! +'+gain.toFixed(3)+' mata ('+(ms/1000).toFixed(2)+'s)'),50);
+    } else {
+      setTimeout(()=>toast('✔ Betul ('+(ms/1000).toFixed(2)+'s) · rekod terbaik '+(bm[S.cur]/1000).toFixed(2)+'s'),50);
+    }
     saveSession(); starBurst(btn); toast('✔ TEPAT!'); setTimeout(nextQ,1300);
   } else {
     if(btn) btn.classList.add('bad');
@@ -738,6 +845,7 @@ function answer(t,btn){
 }
 $('btnSkip').onclick=()=>{
   if(S.locked) return; stopTimer();
+  { const q=S.m.q[S.cur]; Sync.log({bab:S.m.nama.split(':')[0].trim(),soalan:q.q,jawapan:'(SKIP)',betul:q.a,keputusan:'SKIP',cubaan:S.tried.has(S.cur)?'ULANGAN':'PERTAMA'}) }
   S.tried.add(S.cur); S.queue.push(S.cur); toast('⏭ Soalan diulang di akhir sesi.'); nextQ();
 };
 function showNote(q,timeout){
@@ -754,7 +862,8 @@ function endModule(){
   data.progress[S.m.id]={skor,total,masa:new Date().toISOString()};
   data.results.push({modul:S.m.id,skor,total,masa:new Date().toISOString()});
   delete data.sessions[S.m.id]; data.active=null;
-  Store.save(data);
+  Store.save(data); Sync.send();
+  api('result',{nama:data.user.nama,kelas:data.user.kelas,bab:S.m.nama.split(':')[0].trim(),skor,total}).catch(()=>{});
   $('endScore').textContent=skor+'/'+total;
   $('endInfo').textContent=`Betul pada cubaan pertama. Semua ${total} soalan telah dijawab dengan betul.`;
   const st=stats();
@@ -763,7 +872,7 @@ function endModule(){
   if(st.allDone && !data.certShown){ data.certShown=true; Store.save(data); setTimeout(openCert,1800) }
 }
 $('btnEndCert').onclick=()=>openCert();
-$('btnBack').onclick=()=>{ renderHub(); show('screenHub') };
+$('btnBack').onclick=()=>{ renderHub(); show('screenHub'); loadRank() };
 
 /* ========= TTS SUARA WANITA ========= */
 let voices=[];
@@ -922,9 +1031,11 @@ $('pwd').addEventListener('keydown',e=>{ if(e.key==='Enter') doReset() });
 applyZoom(data.settings.zoom||1);
 /* Kekal log masuk walaupun telefon/komputer dimulakan semula */
 if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
-addEventListener('pagehide',()=>{ if(S) saveSession() });
-document.addEventListener('visibilitychange',()=>{ if(document.hidden && S) saveSession() });
+addEventListener('pagehide',()=>{ if(S) saveSession(); Sync.send() });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden){ if(S) saveSession(); Sync.send() } });
 const resumeMod = data.user && data.active && MODULES.find(m=>m.id===data.active && data.sessions[m.id] && data.sessions[m.id].queue.length);
+if(data.user) Sync.send();
+loadRank();
 if(resumeMod){ startModule(resumeMod) } else { goHome(); if(data.user) setTimeout(()=>toast('👋 Selamat kembali, '+data.user.nama+'!'),400) }
 </script>
 </body>
