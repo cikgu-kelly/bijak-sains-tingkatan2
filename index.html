@@ -584,7 +584,7 @@ $('loginForm').onsubmit = e=>{
   toast('✔ Data disimpan. Selamat datang!');
   renderHub(); show('screenHub');
 };
-$('btnLogout').onclick=()=>{ stopTimer(); data.user=null; Store.save(data); $('loginForm').reset(); show('screenStart'); toast('Log keluar berjaya.') };
+$('btnLogout').onclick=()=>{ stopTimer(); data.user=null; data.active=null; Store.save(data); $('loginForm').reset(); show('screenStart'); toast('Log keluar berjaya.') };
 
 /* ========= ENJIN KUIZ ========= */
 const T=20;
@@ -601,7 +601,7 @@ function saveSession(){
 }
 function pauseQuiz(){
   if(!S) return;
-  saveSession(); stopTimer(); S=null;
+  saveSession(); stopTimer(); S=null; data.active=null; Store.save(data);
   if(window.speechSynthesis) speechSynthesis.cancel();
   $('modalNote').classList.remove('show');
   toast('⏸ Kemajuan disimpan. Sambung bila-bila masa.');
@@ -615,6 +615,7 @@ function startModule(m){
   } else {
     S={m,queue:shuffle(m.q.map((_,i)=>i)),firstTry:new Set(),tried:new Set(),retry:false,cur:null,phase:'q',left:T,locked:false};
   }
+  data.active=m.id; Store.save(data);
   show('screenQuiz'); nextQ();
 }
 function nextQ(){
@@ -679,7 +680,7 @@ function endModule(){
   const total=S.m.q.length, skor=S.firstTry.size;
   data.progress[S.m.id]={skor,total,masa:new Date().toISOString()};
   data.results.push({modul:S.m.id,skor,total,masa:new Date().toISOString()});
-  delete data.sessions[S.m.id];
+  delete data.sessions[S.m.id]; data.active=null;
   Store.save(data);
   $('endScore').textContent=skor+'/'+total;
   $('endInfo').textContent=`Betul pada cubaan pertama. Semua ${total} soalan telah dijawab dengan betul.`;
@@ -840,7 +841,12 @@ $('pwd').addEventListener('keydown',e=>{ if(e.key==='Enter') doReset() });
 
 /* ========= INIT ========= */
 applyZoom(data.settings.zoom||1);
-goHome();
+/* Kekal log masuk walaupun telefon/komputer dimulakan semula */
+if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+addEventListener('pagehide',()=>{ if(S) saveSession() });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden && S) saveSession() });
+const resumeMod = data.user && data.active && MODULES.find(m=>m.id===data.active && data.sessions[m.id] && data.sessions[m.id].queue.length);
+if(resumeMod){ startModule(resumeMod) } else { goHome(); if(data.user) setTimeout(()=>toast('👋 Selamat kembali, '+data.user.nama+'!'),400) }
 </script>
 </body>
 </html>
