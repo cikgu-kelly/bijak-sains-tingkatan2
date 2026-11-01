@@ -324,7 +324,7 @@ input::placeholder{color:#4d6777}
     </div>
     <div class="ans" id="noteAns"></div>
     <div class="note" id="noteText"></div>
-    <div class="warnNote">📖 <b>CIKGU KELLY PESAN: SILA BACA NOTA INI DAN FAHAMKAN.</b><br>Soalan yang sama akan ditanya semula sebentar lagi!</div>
+    <div class="warnNote">📖 <b>SILA BACA NOTA INI DAN FAHAMKAN.</b><br>Soalan yang sama akan ditanya semula sebentar lagi!</div>
     <div class="row">
       <button class="btn ghost" id="btnSpeak">🔊 ULANG</button>
       <button class="btn" id="btnNext">TERUS ▶</button>
@@ -658,7 +658,7 @@ function showNote(q,timeout){
   $('modalNote').classList.add('show');
   const bn=$('btnNext'); let w=5; bn.disabled=true; bn.textContent='BACA NOTA ('+w+')';
   clearInterval(bn._t); bn._t=setInterval(()=>{ w--; if(w<=0){ clearInterval(bn._t); bn.disabled=false; bn.textContent='SAYA FAHAM ▶' } else bn.textContent='BACA NOTA ('+w+')' },1000);
-  speak('Hai, saya Cikgu Kelly, cikgu awak. Jawapan yang betul ialah: '+q.a+'. '+q.note.replace(/<[^>]+>/g,'')+'. Sila baca nota ini dan fahamkan. Soalan yang sama akan ditanya semula sebentar lagi.');
+  speak('Hai, saya Cikgu Kelly. Jawapan yang betul ialah: '+q.a+'. '+q.note.replace(/<[^>]+>/g,'')+'. Sila baca nota ini dan fahamkan. Soalan yang sama akan ditanya semula sebentar lagi.');
 }
 $('btnSpeak').onclick=()=>{ const q=S.m.q[S.cur]; speak('Hai, saya Cikgu Kelly. Jawapan yang betul ialah: '+q.a+'. '+q.note.replace(/<[^>]+>/g,'')) };
 $('btnNext').onclick=()=>{ if($('btnNext').disabled) return; speechSynthesis.cancel(); $('modalNote').classList.remove('show'); nextQ() };
