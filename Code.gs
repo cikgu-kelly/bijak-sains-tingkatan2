@@ -21,7 +21,13 @@ const H_DATA = ['Nama Penuh','Data (JSON)','Kemas Kini'];
 
 /* ================= PINTU MASUK ================= */
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile('index')
+  let html = HtmlService.createHtmlOutputFromFile('index').getContent();
+  const raw = soalan_();
+  if (raw.length) {
+    const json = JSON.stringify(raw).replace(/</g, '\\u003c');
+    html = html.replace(/\/\*SOALAN_MULA\*\/[\s\S]*?\/\*SOALAN_TAMAT\*\//, function(){ return 'const RAW=' + json + ';'; });
+  }
+  return HtmlService.createHtmlOutput(html)
     .setTitle('Sistem Kuiz Tingkatan 2')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -52,6 +58,26 @@ function api(action, p) {
       default: throw new Error('Tindakan tidak sah: ' + action);
     }
   } finally { lock.releaseLock(); }
+}
+
+/* ================= SOALAN (dari helaian SOALAN) =================
+ * Lajur: ID Modul | Nama Modul | Keterangan Modul | Konteks / Rajah | Soalan |
+ *        Jawapan Betul | Pilihan Salah 1 | Pilihan Salah 2 | Pilihan Salah 3 | Petunjuk | Nota Penerangan
+ * Jika helaian SOALAN kosong / tiada, soalan asal dalam index.html digunakan.
+ */
+function soalan_() {
+  const sh = ss_().getSheetByName('SOALAN');
+  if (!sh || sh.getLastRow() < 2) return [];
+  const rows = sh.getRange(2, 1, sh.getLastRow() - 1, 11).getDisplayValues();
+  const mods = [], map = {};
+  rows.forEach(function (r) {
+    const id = String(r[0]).trim(), q = String(r[4]).trim(), a = String(r[5]).trim();
+    if (!id || !q || !a) return;
+    if (!map[id]) { map[id] = { id: id, nama: String(r[1]).trim(), desc: String(r[2]).trim(), q: [] }; mods.push(map[id]); }
+    const w = [r[6], r[7], r[8]].map(function (x) { return String(x).trim(); }).filter(String);
+    map[id].q.push([q, a, w, String(r[9]), String(r[10]), String(r[3]).trim()]);
+  });
+  return mods;
 }
 
 /* ================= UTILITI ================= */

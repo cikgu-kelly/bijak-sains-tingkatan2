@@ -2,7 +2,7 @@
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
-<script>/* PANGKALAN DATA (Google Sheets + Drive) — URL Web App Apps Script */ window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwrzNFx8iu7qv3mRH23MbfJEm1Fi8x5zqpH-AkFSO02nXqWyx-sEDExWJ4-itGdca9-/exec";</script>
+<script>/* PANGKALAN DATA (Google Sheets + Drive) — URL Web App Apps Script */ window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxr-9Yss7qDR_QgFNL4YAArlDqdfL3uLOo_gUKV37wgS-0UN21KXduqdhRvNAKeuBsg/exec";</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NEON QUIZ // Terminal Tingkatan 2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -366,6 +366,7 @@ $('btnZoomOut').onclick = ()=>applyZoom(data.settings.zoom-0.1);
 
 /* ========= BANK SOALAN: 200 SOALAN (Sains T2 – Set 2) =========
    Format: [soalan, jawapan, [salah1,salah2,salah3], klue, nota, konteks?]  */
+/*SOALAN_MULA*/
 const CA='Eksperimen: Bikar A (150 ml air + 10 g garam halus) dan Bikar B (150 ml air + 10 g garam kasar) dikacau pada kadar yang sama. Garam halus melarut dalam 12 saat, garam kasar dalam 50 saat.';
 const CB='Ali melarutkan 3 g serbuk kopi dan 3 g butiran kopi ke dalam dua cawan berisi 200 ml air. Serbuk kopi melarut dalam 15 saat, butiran kopi dalam 60 saat.';
 const CC='Mei Ling melarutkan 5 g gula ke dalam 100 ml air bersuhu 30°C (90 saat) dan 100 ml air bersuhu 70°C (25 saat).';
@@ -597,6 +598,7 @@ const RAW=[
   ['Apakah yang berlaku kepada makanan di dalam perut?','Protein dicerna oleh enzim dengan bantuan asid hidroklorik',['Air diserap semula','Makanan dikunyah oleh gigi','Najis disimpan'],'Persekitaran berasid.','Di <mark>perut</mark>, <mark>asid hidroklorik</mark> dan enzim <mark>pepsin</mark> mencerna <mark>protein</mark>.']
  ]}
 ];
+/*SOALAN_TAMAT*/
 const MODULES=RAW.map(m=>({id:m.id,nama:m.nama,desc:m.desc,q:m.q.map(r=>({q:r[0],a:r[1],w:r[2],clue:r[3],note:r[4],ctx:r[5]||''}))}));
 const TOTAL_Q=MODULES.reduce((s,m)=>s+m.q.length,0);
 
