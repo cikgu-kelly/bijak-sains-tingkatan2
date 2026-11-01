@@ -2,7 +2,7 @@
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
-<script>/* PANGKALAN DATA (Google Sheets + Drive) — URL Web App Apps Script */ window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby5ciBuZI3j_wgXD6M8pcWwyP9LsOYKDsClXoxEQ_Ndd6kL3oU8bvHK7Qra16s1quRm/exec";</script>
+<script>/* PANGKALAN DATA (Google Sheets + Drive) — URL Web App Apps Script */ window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxr-9Yss7qDR_QgFNL4YAArlDqdfL3uLOo_gUKV37wgS-0UN21KXduqdhRvNAKeuBsg/exec";</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NEON QUIZ // Terminal Tingkatan 2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -324,7 +324,7 @@ input::placeholder{color:#4d6777}
     </div>
     <div class="ans" id="noteAns"></div>
     <div class="note" id="noteText"></div>
-    <div class="warnNote">📖 <b>SILA BACA NOTA INI DAN FAHAMKAN.</b><br>Soalan yang sama akan ditanya semula sebentar lagi!</div>
+    <div class="warnNote">📖 <b>CIKGU KELLY PESAN: SILA BACA NOTA INI DAN FAHAMKAN.</b><br>Soalan yang sama akan ditanya semula sebentar lagi!</div>
     <div class="row">
       <button class="btn ghost" id="btnSpeak">🔊 ULANG</button>
       <button class="btn" id="btnNext">TERUS ▶</button>
@@ -657,7 +657,7 @@ function snapshot(){
   };
 }
 var Sync={t:null,
-  push(){ if(!data.user) return; clearTimeout(this.t); this.t=setTimeout(()=>this.send(),1200) },
+  push(){ if(!data.user) return; clearTimeout(this.t); this.t=setTimeout(()=>this.send(),10000+Math.random()*5000) },
   send(){
     if(!data.user) return Promise.resolve();
     clearTimeout(this.t);
@@ -680,7 +680,8 @@ function renderRank(list){
   const qr=$('qRank'); if(qr){ const pos=list.findIndex(r=>r.nama===me); qr.textContent='🏆 #'+(pos>=0?pos+1:'-') }
 }
 function loadRank(){ api('rank',{}).then(renderRank).catch(()=>{ ['rankStart','rankHub'].forEach(id=>{const e=$(id); if(e&&/Memuatkan/.test(e.textContent)) e.innerHTML='<li>Ranking tidak dapat dimuatkan.</li>'}) }) }
-setInterval(()=>{ if(!document.hidden) loadRank() },15000);
+// Muat ranking setiap ~30s (masa rawak supaya 1000 murid tidak serentak menghantar permintaan)
+(function rk(){ setTimeout(()=>{ if(!document.hidden) loadRank(); rk() }, 25000+Math.random()*10000) })();
 function validName(n){ return n.length>=6 && /^[A-Z@'.\-\/ ]+$/.test(n) && n.split(' ').filter(w=>w.length>=2).length>=2 }
 
 /* ========= LOG MASUK ========= */
@@ -848,7 +849,7 @@ function answer(t,btn){
     } else {
       setTimeout(()=>toast('✔ Betul ('+(ms/1000).toFixed(2)+'s) · rekod terbaik '+(bm[S.cur]/1000).toFixed(2)+'s'),50);
     }
-    saveSession(); Sync.push(); setTimeout(loadRank,3500); starBurst(btn); toast('✔ TEPAT!'); setTimeout(nextQ,1300);
+    saveSession(); Sync.push(); starBurst(btn); toast('✔ TEPAT!'); setTimeout(nextQ,1300);
   } else {
     if(btn) btn.classList.add('bad');
     S.tried.add(S.cur); S.queue.push(S.cur); saveSession();
