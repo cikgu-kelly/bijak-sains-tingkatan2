@@ -63,7 +63,7 @@ function api(action, p) {
 /* ================= SOALAN (dari helaian SOALAN) =================
  * Lajur: ID Modul | Nama Modul | Keterangan Modul | Konteks / Rajah | Soalan |
  *        Jawapan Betul | Pilihan Salah 1 | Pilihan Salah 2 | Pilihan Salah 3 | Petunjuk | Nota Penerangan
- * Jika helaian SOALAN kosong / tiada, soalan asal dalam index.html digunakan.
+ * Soalan kini DIAMBIL DARIPADA HELAIAN "SOALAN" SAHAJA (tiada soalan dalam index.html).
  */
 function soalan_() {
   const sh = ss_().getSheetByName('SOALAN');
