@@ -37,117 +37,21 @@ function doPost(e) {
 }
 function out_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 
-/** Dipanggil oleh google.script.run atau doPost.
- * PRESTASI (1000+ murid serentak):
- *  - 'save', 'log', 'result' TIDAK menulis terus ke Sheets. Data disimpan dalam baris gilir (CacheService)
- *    dalam ~50ms tanpa kunci global, kemudian flushData() (pencetus setiap 1 minit) menulis semuanya sekali gus.
- *  - 'rank' dibaca dari cache sahaja (dikira semula semasa flush).
- *  - Hanya 'login' (sekali bagi setiap murid) menggunakan kunci. */
+/** Dipanggil oleh google.script.run atau doPost */
 function api(action, p) {
-  switch (action) {
-    case 'rank':   return rank_();
-    case 'save':   return qSave_(p);
-    case 'log':    return qPush_('L', p.nama, (p.rows || []).map(r => [r.masa || now_(), norm_(p.nama), norm_(p.kelas), r.bab, r.soalan, r.jawapan, r.betul, r.keputusan, r.cubaan]));
-    case 'result': return qPush_('R', p.nama, [[now_(), norm_(p.nama), norm_(p.kelas), p.bab, p.skor, p.total, p.total ? Math.round(p.skor / p.total * 100) : 0]]);
-    case 'login': {
-      const foto = savePhoto_(norm_(p.nama), norm_(p.kelas), p.foto); // di luar kunci (perlahan)
-      const lock = LockService.getScriptLock();
-      lock.waitLock(28000);
-      try { return login_(p, foto); } finally { lock.releaseLock(); }
-    }
-    default: throw new Error('Tindakan tidak sah: ' + action);
-  }
-}
-
-/* ================= BARIS GILIR (CACHE) ================= */
-const C_ = () => CacheService.getScriptCache();
-const QTTL = 21600; // 6 jam
-function names_() {
-  const hit = C_().get('NAMES');
-  if (hit) return JSON.parse(hit);
-  const sh = sheet_('MURID', H_MURID), last = sh.getLastRow();
-  const list = last < 2 ? [] : sh.getRange(2, 1, last - 1, 1).getValues().map(r => norm_(r[0])).filter(String);
-  C_().put('NAMES', JSON.stringify(list), QTTL);
-  return list;
-}
-function qSave_(p) {
-  const nama = norm_(p.nama);
-  const s = JSON.stringify({ t: Date.now(), state: p.state || {} });
-  if (s.length < 95000) { C_().put('S_' + nama, s, QTTL); return { ok: true, q: true }; }
-  // Terlalu besar untuk cache: tulis terus (jarang berlaku)
-  const lock = LockService.getScriptLock(); lock.waitLock(28000);
-  try { return save_(p); } finally { lock.releaseLock(); }
-}
-function qPush_(kind, nama, rows) {
-  if (!rows.length) return { ok: true };
-  // Kunci unik setiap permintaan: tiada perlumbaan antara murid
-  const key = kind + '_' + norm_(nama) + '_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
-  C_().put(key, JSON.stringify(rows), QTTL);
-  const ik = 'IDX_' + kind + '_' + norm_(nama);
-  const idx = JSON.parse(C_().get(ik) || '[]'); idx.push(key);
-  C_().put(ik, JSON.stringify(idx), QTTL);
-  return { ok: true, q: true };
-}
-
-/** Pencetus masa (setiap 1 minit): tulis semua data beratur ke Sheets secara pukal. */
-function flushData() {
+  if (action === 'rank') return rank_();
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(1000)) return; // flush lain sedang berjalan
+  lock.waitLock(25000);
   try {
-    const cache = C_(), names = names_();
-    if (!names.length) return;
-    // 1) Kemajuan murid
-    const sKeys = names.map(n => 'S_' + n);
-    const pending = {};
-    for (let i = 0; i < sKeys.length; i += 500) Object.assign(pending, cache.getAll(sKeys.slice(i, i + 500)));
-    const done = [];
-    Object.keys(pending).forEach(k => {
-      try { save_({ nama: k.slice(2), state: JSON.parse(pending[k]).state }, true); done.push(k); } catch (e) { console.error(k, e); }
-    });
-    if (done.length) { bulkWrite_(); cache.removeAll(done); }
-    // 2) Log jawapan + keputusan modul
-    [['L', 'LOG_JAWAPAN', H_LOG], ['R', 'KEPUTUSAN_MODUL', H_KEP]].forEach(([kind, sheetName, head]) => {
-      const iks = names.map(n => 'IDX_' + kind + '_' + n);
-      const idx = {};
-      for (let i = 0; i < iks.length; i += 500) Object.assign(idx, cache.getAll(iks.slice(i, i + 500)));
-      const keys = [].concat.apply([], Object.keys(idx).map(k => JSON.parse(idx[k])));
-      if (!keys.length) return;
-      cache.removeAll(Object.keys(idx));
-      const vals = {};
-      for (let i = 0; i < keys.length; i += 500) Object.assign(vals, cache.getAll(keys.slice(i, i + 500)));
-      const rows = [].concat.apply([], Object.keys(vals).map(k => JSON.parse(vals[k])));
-      if (rows.length) { const sh = sheet_(sheetName, head); sh.getRange(sh.getLastRow() + 1, 1, rows.length, head.length).setValues(rows); }
-      cache.removeAll(keys);
-    });
-    rankBuild_();
+    switch (action) {
+      case 'login':  return login_(p);
+      case 'save':   return save_(p);
+      case 'log':    return log_(p);
+      case 'result': return result_(p);
+      case 'rank':   return rank_();
+      default: throw new Error('Tindakan tidak sah: ' + action);
+    }
   } finally { lock.releaseLock(); }
-}
-
-/* Penulisan pukal: save_() mengumpul perubahan dalam BUF_, bulkWrite_() menulis setiap helaian sekali sahaja */
-let BUF_ = null;
-function buf_() {
-  if (BUF_) return BUF_;
-  const read = (name, head, w) => { const sh = sheet_(name, head); const last = sh.getLastRow(); const width = w || Math.max(sh.getLastColumn(), head.length);
-    return { sh, width, rows: last < 2 ? [] : sh.getRange(2, 1, last - 1, width).getValues(), n: Math.max(last - 1, 0), add: [], dirty: false }; };
-  BUF_ = { M: read('MURID', H_MURID, H_MURID.length), D: read('_DATA', H_DATA, 3) };
-  const saved = JSON.parse(PropertiesService.getScriptProperties().getProperty('MODULES') || '[]');
-  if (saved.length) BUF_.A = read('ANALISIS_BAB', [], saved.length + 5);
-  return BUF_;
-}
-function bufRow_(b, nama) { for (let i = 0; i < b.rows.length; i++) if (norm_(b.rows[i][0]) === nama) return i; return -1; }
-function bulkWrite_() {
-  if (!BUF_) return;
-  ['M', 'D', 'A'].forEach(k => { const b = BUF_[k]; if (!b) return;
-    if (b.dirty && b.n) b.sh.getRange(2, 1, b.n, b.width).setValues(b.rows.slice(0, b.n));
-    if (b.add.length) b.sh.getRange(b.sh.getLastRow() + 1, 1, b.add.length, b.width).setValues(b.add.map(r => r.concat(Array(Math.max(0, b.width - r.length)).fill('')).slice(0, b.width)));
-  });
-  BUF_ = null;
-}
-
-/** Jalankan SEKALI secara manual: pasang pencetus flush setiap 1 minit. */
-function pasangPencetus() {
-  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'flushData').forEach(t => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger('flushData').timeBased().everyMinutes(1).create();
 }
 
 /* ================= UTILITI ================= */
@@ -227,20 +131,20 @@ function ensureAnalisis_(modules) {
 function colLetter_(n) { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
 
 /* ================= LOG MASUK / DAFTAR ================= */
-function login_(p, foto) {
+function login_(p) {
   const nama = norm_(p.nama), kelas = norm_(p.kelas);
   if (!validName_(nama)) throw new Error('Sila masukkan NAMA PENUH yang sebenar (sekurang-kurangnya 2 perkataan, huruf sahaja).');
   if (!kelas) throw new Error('Sila masukkan kelas.');
-  if (p.modules && p.modules.length && PropertiesService.getScriptProperties().getProperty('MODULES') !== JSON.stringify(p.modules)) ensureAnalisis_(p.modules);
+  if (p.modules && p.modules.length) ensureAnalisis_(p.modules);
 
   const sh = sheet_('MURID', H_MURID);
   let row = findRow_(sh, nama);
   const baru = row < 0;
+  const foto = savePhoto_(nama, kelas, p.foto);
 
   if (baru) {
     sh.appendRow([nama, kelas, '', foto ? foto.url : '', now_(), now_(), 1, 0, 0, 0, '-', '-', 0, '-', '-', now_(), 0, 0, 0]);
     row = sh.getLastRow();
-    const nl = names_(); if (nl.indexOf(nama) < 0) { nl.push(nama); C_().put('NAMES', JSON.stringify(nl), QTTL); }
   } else {
     sh.getRange(row, 2).setValue(kelas);
     sh.getRange(row, 6, 1, 2).setValues([[now_(), (Number(sh.getRange(row, 7).getValue()) || 0) + 1]]);
@@ -253,25 +157,23 @@ function login_(p, foto) {
   const dr = findRow_(d, nama);
   let state = null;
   if (dr > 0) { try { state = JSON.parse(d.getRange(dr, 2).getValue()); } catch (e) {} }
-  const q = C_().get('S_' + nama); // kemajuan terbaru yang belum di-flush
-  if (q) { try { state = JSON.parse(q).state.save || state; } catch (e) {} }
   return { baru: baru, nama: nama, kelas: kelas, state: state, fotoUrl: foto ? foto.thumb : null };
 }
 
-/* ================= SIMPAN KEMAJUAN =================
- * bulk=true (dari flushData): perubahan dikumpul dalam ingatan, ditulis sekali gus oleh bulkWrite_(). */
-function save_(p, bulk) {
+/* ================= SIMPAN KEMAJUAN (LIVE) ================= */
+function save_(p) {
   const nama = norm_(p.nama);
-  const B = buf_();
-  const mi = bufRow_(B.M, nama);
-  if (mi < 0) throw new Error('Murid belum berdaftar.');
-  const M = B.M.rows[mi]; B.M.dirty = true;
-  const kelas = M[1];
+  const sh = sheet_('MURID', H_MURID);
+  const row = findRow_(sh, nama);
+  if (row < 0) throw new Error('Murid belum berdaftar.');
+  const kelas = sh.getRange(row, 2).getValue();
   const st = p.state || {};
 
   // 1) Data sambung semula
-  const di = bufRow_(B.D, nama), dv = [nama, JSON.stringify(st.save || {}), now_()];
-  if (di >= 0) { B.D.rows[di] = dv; B.D.dirty = true; } else { B.D.add.push(dv); B.D.rows.push(dv); }
+  const d = sheet_('_DATA', H_DATA);
+  const dr = findRow_(d, nama);
+  const vals = [[nama, JSON.stringify(st.save || {}), now_()]];
+  if (dr > 0) d.getRange(dr, 1, 1, 3).setValues(vals); else d.appendRow(vals[0]);
 
   // 2) Ringkasan murid
   const s = st.summary || {};
@@ -279,24 +181,27 @@ function save_(p, bulk) {
   const tried = mods.filter(m => m.acc !== null && m.acc !== undefined);
   const weak = tried.length ? tried.reduce((a, b) => (b.acc < a.acc ? b : a)) : null;
   const strong = tried.length ? tried.reduce((a, b) => (b.acc > a.acc ? b : a)) : null;
+  sh.getRange(row, 8, 1, 9).setValues([[
+    s.answered || 0, s.skor || 0, s.pct || 0, s.gred || '-', s.tahap || '-', (s.done || 0) + '/' + (s.modTotal || mods.length),
+    weak ? weak.nama + ' (' + weak.acc + '%)' : '-', strong ? strong.nama + ' (' + strong.acc + '%)' : '-', now_()
+  ]]);
+
   const save = st.save || {};
   const betul = Object.keys(save.scored || {}).reduce((n, k) => n + (save.scored[k] || []).length, 0);
-  [s.answered || 0, s.skor || 0, s.pct || 0, s.gred || '-', s.tahap || '-', (s.done || 0) + '/' + (s.modTotal || mods.length),
-    weak ? weak.nama + ' (' + weak.acc + '%)' : '-', strong ? strong.nama + ' (' + strong.acc + '%)' : '-', now_(),
-    Number(s.mata) || 0, Number(s.masaJawab) || 0, betul].forEach((v, k) => M[7 + k] = v);
+  sh.getRange(row, 17, 1, 3).setValues([[Number(s.mata) || 0, Number(s.masaJawab) || 0, betul]]);
+  CacheService.getScriptCache().remove('RANK');
 
   // 3) Analisis bab
   if (mods.length) {
-    if (!B.A) { ensureAnalisis_(mods.map(m => ({ id: m.id, nama: m.nama, total: m.total }))); BUF_ = null; return save_(p, bulk); }
     const saved = JSON.parse(PropertiesService.getScriptProperties().getProperty('MODULES') || '[]');
-    const order = saved.map(m => m.id);
+    const a = saved.length ? sheet_('ANALISIS_BAB', []) : ensureAnalisis_(mods.map(m => ({ id: m.id, nama: m.nama, total: m.total })));
+    const order = (saved.length ? saved : mods).map(m => m.id);
     const byId = {}; mods.forEach(m => byId[m.id] = m);
     const line = [nama, kelas].concat(order.map(id => (byId[id] && byId[id].acc !== null && byId[id].acc !== undefined) ? byId[id].acc : ''),
       [weak ? weak.nama : '-', strong ? strong.nama : '-', now_()]);
-    const ai = bufRow_(B.A, nama);
-    if (ai >= 0) { B.A.rows[ai] = line; B.A.dirty = true; } else B.A.add.push(line);
+    const ar = findRow_(a, nama);
+    if (ar > 0) a.getRange(ar, 1, 1, line.length).setValues([line]); else a.appendRow(line);
   }
-  if (!bulk) bulkWrite_();
   return { ok: true };
 }
 
@@ -305,28 +210,43 @@ function save_(p, bulk) {
  * Kedudukan: lebih banyak soalan dijawab betul = lebih tinggi (dikira LIVE walaupun belum habis).
  * Jika sama, mata kelajuan menentukan. Seri dipecahkan oleh jumlah masa terpendek. */
 function rank_() {
-  const hit = C_().get('RANK');
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('RANK');
   if (hit) return JSON.parse(hit);
-  const lock = LockService.getScriptLock(); // hanya seorang mengira semula jika cache kosong
-  if (!lock.tryLock(8000)) return [];
-  try { const again = C_().get('RANK'); return again ? JSON.parse(again) : rankBuild_(); } finally { lock.releaseLock(); }
-}
-function rankBuild_() {
   const sh = sheet_('MURID', H_MURID);
   if (sh.getRange(1, 17).getValue() !== H_MURID[16]) sh.getRange(1, 17, 1, 3).setValues([H_MURID.slice(16, 19)]).setFontWeight('bold').setBackground('#0b1f3a').setFontColor('#ffffff');
   const last = sh.getLastRow();
-  const list = last < 2 ? [] : sh.getRange(2, 1, last - 1, 19).getValues()
+  if (last < 2) return [];
+  const list = sh.getRange(2, 1, last - 1, 19).getValues()
     .filter(r => r[0] && (Number(r[18]) > 0 || Number(r[16]) > 0))
     .map(r => ({ nama: String(r[0]), kelas: String(r[1]), mata: Number(r[16]) || 0, masa: Number(r[17]) || 0, betul: Number(r[18]) || 0 }))
+    
     .sort((a, b) => b.betul - a.betul || b.mata - a.mata || a.masa - b.masa || a.nama.localeCompare(b.nama))
     .slice(0, 50);
-  C_().put('RANK', JSON.stringify(list), 120);
+  cache.put('RANK', JSON.stringify(list), 10);
   return list;
+}
+
+/* ================= LOG SETIAP JAWAPAN ================= */
+function log_(p) {
+  const rows = (p.rows || []).map(r => [r.masa || now_(), norm_(p.nama), norm_(p.kelas), r.bab, r.soalan, r.jawapan, r.betul, r.keputusan, r.cubaan]);
+  if (!rows.length) return { ok: true };
+  const sh = sheet_('LOG_JAWAPAN', H_LOG);
+  sh.getRange(sh.getLastRow() + 1, 1, rows.length, H_LOG.length).setValues(rows);
+  return { ok: true, n: rows.length };
+}
+
+/* ================= KEPUTUSAN MODUL ================= */
+function result_(p) {
+  const sh = sheet_('KEPUTUSAN_MODUL', H_KEP);
+  const pct = p.total ? Math.round(p.skor / p.total * 100) : 0;
+  sh.appendRow([now_(), norm_(p.nama), norm_(p.kelas), p.bab, p.skor, p.total, pct]);
+  return { ok: true };
 }
 
 /** Jalankan sekali secara manual untuk memberi kebenaran (Sheets + Drive). */
 function setup() {
-  sheet_('MURID', H_MURID); sheet_('KEPUTUSAN_MODUL', H_KEP); pasangPencetus(); sheet_('LOG_JAWAPAN', H_LOG); sheet_('_DATA', H_DATA);
+  sheet_('MURID', H_MURID); sheet_('KEPUTUSAN_MODUL', H_KEP); sheet_('LOG_JAWAPAN', H_LOG); sheet_('_DATA', H_DATA);
   DriveApp.getFolderById(FOLDER_ID).getName();
   const s1 = ss_().getSheetByName('Sheet1') || ss_().getSheetByName('Helaian1');
   if (s1 && s1.getLastRow() === 0 && ss_().getSheets().length > 1) ss_().deleteSheet(s1);
