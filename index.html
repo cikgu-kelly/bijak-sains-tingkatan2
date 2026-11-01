@@ -2,6 +2,7 @@
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
+<script>/* PANGKALAN DATA (Google Sheets + Drive) — URL Web App Apps Script */ window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxr-9Yss7qDR_QgFNL4YAArlDqdfL3uLOo_gUKV37wgS-0UN21KXduqdhRvNAKeuBsg/exec";</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NEON QUIZ // Terminal Tingkatan 2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -616,7 +617,7 @@ function renderHub(){
 
 /* ========= SAMBUNGAN PANGKALAN DATA (Google Sheets + Drive) ========= */
 // Jika index.html dihoskan DI LUAR Google Apps Script (cth. GitHub Pages), tampal URL Web App di sini:
-const SCRIPT_URL = '';
+const SCRIPT_URL = window.APPS_SCRIPT_URL || '';
 function api(action,payload){
   return new Promise((res,rej)=>{
     if(window.google && google.script && google.script.run){
