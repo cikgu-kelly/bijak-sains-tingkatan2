@@ -143,6 +143,19 @@ input::placeholder{color:#4d6777}
 .ans{margin:.6rem 0;padding:.6rem;border-radius:8px;border:1px solid #3dff9a;color:#3dff9a}
 #fx{position:fixed;inset:0;pointer-events:none;z-index:65}
 .big{font-size:2.2rem;text-align:center;font-family:'Orbitron';color:var(--cyan);text-shadow:0 0 14px var(--cyan);margin:1rem 0}
+/* ===== SELFIE ===== */
+.aurat{display:flex;gap:.6rem;align-items:flex-start;padding:.8rem 1rem;margin-bottom:1.2rem;border-radius:10px;
+  border:1px solid var(--magenta);color:#ffd6f6;background:rgba(255,43,214,.08);font-size:.9rem;line-height:1.5;box-shadow:0 0 14px rgba(255,43,214,.35)}
+.aurat b{color:var(--magenta)}
+.cam{position:relative;width:200px;height:200px;margin:0 auto .7rem;border-radius:50%;overflow:hidden;
+  border:2px solid var(--cyan);box-shadow:0 0 18px var(--cyan),inset 0 0 18px rgba(0,240,255,.3);background:rgba(0,0,0,.5);
+  display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.8rem;text-align:center;padding:1rem}
+.cam video,.cam img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam video{transform:scaleX(-1)}
+.cam.ok{border-color:#3dff9a;box-shadow:0 0 18px #3dff9a}
+.camrow{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+.camrow .tbtn{min-height:44px}
+.avatar{width:72px;height:72px;border-radius:50%;object-fit:cover;display:block;margin:0 auto .6rem;border:2px solid var(--magenta);box-shadow:0 0 14px var(--magenta)}
 /* ===== FASA 3 ===== */
 .overall{margin-top:1rem;padding:.9rem;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.35)}
 .overall .lbl{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);margin-bottom:.45rem}
@@ -179,14 +192,27 @@ input::placeholder{color:#4d6777}
 
       <div class="warn">⚠ Sila buka pautan ini di Google Chrome untuk paparan terbaik.</div>
 
+      <div class="aurat">🧕 <span><b>ARAHAN:</b> Pastikan anda <b>memakai pakaian yang sopan dan menutup aurat</b> sebelum memulakan kuiz ini. Gambar selfie anda akan direkodkan.</span></div>
+
       <form id="loginForm" novalidate>
         <div class="field">
-          <label for="nama">// NAMA PENUH</label>
+          <label>// 1. SELFIE GAMBAR MUKA</label>
+          <div class="cam" id="camBox"><span id="camHint">Tekan "BUKA KAMERA" untuk mengambil gambar muka anda</span></div>
+          <div class="camrow">
+            <button type="button" class="tbtn" id="btnCam">📷 BUKA KAMERA</button>
+            <button type="button" class="tbtn m" id="btnSnap" style="display:none">◉ AMBIL GAMBAR</button>
+            <button type="button" class="tbtn" id="btnRetake" style="display:none">⟲ AMBIL SEMULA</button>
+          </div>
+          <input type="file" id="camFile" accept="image/*" capture="user" style="display:none">
+          <div class="err" id="errFoto" style="text-align:center"></div>
+        </div>
+        <div class="field">
+          <label for="nama">// 2. NAMA PENUH</label>
           <input id="nama" autocomplete="name" placeholder="Contoh: Ahmad bin Ali">
           <div class="err" id="errNama"></div>
         </div>
         <div class="field">
-          <label for="kelas">// KELAS</label>
+          <label for="kelas">// 3. KELAS</label>
           <input id="kelas" placeholder="Contoh: 2 Bestari">
           <div class="err" id="errKelas"></div>
         </div>
@@ -200,6 +226,7 @@ input::placeholder{color:#4d6777}
   <!-- DASHBOARD MISI -->
   <section class="screen" id="screenHub">
     <div class="glass">
+      <img class="avatar" id="hubFoto" alt="Selfie murid">
       <h1 class="title" style="font-size:1.3rem">DASHBOARD MISI</h1>
       <p class="sub">&gt; Ejen <b id="hubNama">-</b> // <span id="hubKelas">-</span>_</p>
       <div class="overall">
@@ -552,6 +579,7 @@ const TOTAL_Q=MODULES.reduce((s,m)=>s+m.q.length,0);
 data.progress = data.progress || {};
 function renderHub(){
   $('hubNama').textContent=data.user.nama;
+  $('hubFoto').src=data.user.foto||''; $('hubFoto').style.display=data.user.foto?'block':'none';
   $('hubKelas').textContent=data.user.kelas;
   $('mods').innerHTML='';
   MODULES.forEach(m=>{
@@ -578,13 +606,58 @@ $('loginForm').onsubmit = e=>{
   const nama=$('nama').value.trim(), kelas=$('kelas').value.trim();
   $('errNama').textContent = nama.length<3 ? '! Sila masukkan nama penuh.' : '';
   $('errKelas').textContent = !kelas ? '! Sila masukkan kelas.' : '';
-  if(nama.length<3 || !kelas) return;
-  data.user = {nama:nama.toUpperCase(), kelas:kelas.toUpperCase(), masa:new Date().toISOString()};
+  $('errFoto').textContent = !Cam.foto ? '! Sila ambil gambar selfie dahulu.' : '';
+  if(nama.length<3 || !kelas || !Cam.foto) return;
+  Cam.stop();
+  data.user = {nama:nama.toUpperCase(), kelas:kelas.toUpperCase(), foto:Cam.foto, masa:new Date().toISOString()};
   Store.save(data);
   toast('✔ Data disimpan. Selamat datang!');
   renderHub(); show('screenHub');
 };
-$('btnLogout').onclick=()=>{ stopTimer(); data.user=null; data.active=null; Store.save(data); $('loginForm').reset(); show('screenStart'); toast('Log keluar berjaya.') };
+/* ========= KAMERA SELFIE ========= */
+const Cam={stream:null,foto:null,
+  async open(){
+    $('errFoto').textContent='';
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ $('camFile').click(); return }
+    try{
+      this.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:640}},audio:false});
+      const v=document.createElement('video'); v.autoplay=true; v.playsInline=true; v.muted=true; v.srcObject=this.stream;
+      $('camBox').innerHTML=''; $('camBox').className='cam'; $('camBox').appendChild(v);
+      $('btnCam').style.display='none'; $('btnSnap').style.display=''; $('btnRetake').style.display='none';
+    }catch(e){
+      $('errFoto').textContent='! Kamera tidak dapat dibuka. Benarkan akses kamera atau pilih gambar.';
+      $('camFile').click();
+    }
+  },
+  snap(){
+    const v=$('camBox').querySelector('video'); if(!v||!v.videoWidth) return;
+    this.setFrom(v,v.videoWidth,v.videoHeight,true); this.stop();
+  },
+  setFrom(src,w,h,mirror){
+    const S2=320,c=document.createElement('canvas'); c.width=c.height=S2; const g=c.getContext('2d');
+    const m=Math.min(w,h),sx=(w-m)/2,sy=(h-m)/2;
+    if(mirror){g.translate(S2,0);g.scale(-1,1)}
+    g.drawImage(src,sx,sy,m,m,0,0,S2,S2);
+    this.foto=c.toDataURL('image/jpeg',.8); this.preview();
+  },
+  preview(){
+    $('camBox').innerHTML='<img alt="Selfie" src="'+this.foto+'">'; $('camBox').className='cam ok';
+    $('btnCam').style.display='none'; $('btnSnap').style.display='none'; $('btnRetake').style.display='';
+    $('errFoto').textContent='';
+  },
+  stop(){ if(this.stream){ this.stream.getTracks().forEach(t=>t.stop()); this.stream=null } },
+  clear(){ this.stop(); this.foto=null; $('camBox').className='cam';
+    $('camBox').innerHTML='<span>Tekan "BUKA KAMERA" untuk mengambil gambar muka anda</span>';
+    $('btnCam').style.display=''; $('btnSnap').style.display='none'; $('btnRetake').style.display='none' }
+};
+$('btnCam').onclick=()=>Cam.open();
+$('btnSnap').onclick=()=>Cam.snap();
+$('btnRetake').onclick=()=>{ Cam.clear(); Cam.open() };
+$('camFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return;
+  const img=new Image(); img.onload=()=>{ Cam.setFrom(img,img.naturalWidth,img.naturalHeight,false); URL.revokeObjectURL(img.src) };
+  img.src=URL.createObjectURL(f); e.target.value='' };
+
+$('btnLogout').onclick=()=>{ stopTimer(); data.user=null; data.active=null; Store.save(data); $('loginForm').reset(); Cam.clear(); show('screenStart'); toast('Log keluar berjaya.') };
 
 /* ========= ENJIN KUIZ ========= */
 const T=20;
@@ -795,8 +868,14 @@ async function drawCert(){
   txt('SISTEM NEON QUIZ',W-375,1110,'700 26px Orbitron',CY,12);
   txt('Pengesahan Digital',W-375,1142,'20px "Share Tech Mono"','#7fa4b8');
   // lencana
-  neon(YL,30,5,()=>{g.beginPath();g.arc(W/2,1090,62,0,Math.PI*2);g.stroke()});
-  txt('★',W/2,1118,'80px sans-serif',YL,30);
+  if(u.foto){
+    const im=await new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=u.foto});
+    if(im){ g.save(); g.beginPath(); g.arc(W/2,1085,70,0,Math.PI*2); g.clip(); g.drawImage(im,W/2-70,1015,140,140); g.restore() }
+    neon(YL,30,5,()=>{g.beginPath();g.arc(W/2,1085,70,0,Math.PI*2);g.stroke()});
+  } else {
+    neon(YL,30,5,()=>{g.beginPath();g.arc(W/2,1090,62,0,Math.PI*2);g.stroke()});
+    txt('★',W/2,1118,'80px sans-serif',YL,30);
+  }
   certCanvas=c; return c;
 }
 async function openCert(){
@@ -833,7 +912,7 @@ $('btnCancel').onclick=()=>$('modalReset').classList.remove('show');
 function doReset(){
   if($('pwd').value!==RESET_PWD){ $('errPwd').textContent='! Kata laluan salah. Akses ditolak.'; return }
   Store.reset(); data=Store.load(); data.progress={}; data.sessions={}; applyZoom(1);
-  $('loginForm').reset(); $('modalReset').classList.remove('show');
+  $('loginForm').reset(); Cam.clear(); $('modalReset').classList.remove('show');
   show('screenStart'); toast('⟲ Semua data telah dipadam.');
 }
 $('btnConfirm').onclick=doReset;
