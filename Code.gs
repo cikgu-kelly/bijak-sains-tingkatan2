@@ -46,6 +46,7 @@ function out_(o) { return ContentService.createTextOutput(JSON.stringify(o)).set
 /** Dipanggil oleh google.script.run atau doPost */
 function api(action, p) {
   if (action === 'rank') return rank_();
+  if (action === 'soalan') return soalan_();
   const lock = LockService.getScriptLock();
   lock.waitLock(25000);
   try {
@@ -66,7 +67,10 @@ function api(action, p) {
  * Soalan kini DIAMBIL DARIPADA HELAIAN "SOALAN" SAHAJA (tiada soalan dalam index.html).
  */
 function soalan_() {
-  const sh = ss_().getSheetByName('SOALAN');
+  const ss = ss_();
+  const sh = ss.getSheetByName('SOALAN') || ss.getSheets().filter(function (s) {
+    return s.getName().trim().toUpperCase() === 'SOALAN';
+  })[0];
   if (!sh || sh.getLastRow() < 2) return [];
   const rows = sh.getRange(2, 1, sh.getLastRow() - 1, 11).getDisplayValues();
   const mods = [], map = {};

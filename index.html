@@ -2,7 +2,7 @@
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
-<script>/* PANGKALAN DATA (Google Sheets + Drive) — URL Web App Apps Script */ window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuPFhko41vwNDmSIDP6YAH4DYJkZEknXed9ugEdoklHwZ0HridRhDF9vSa2Xqc_Qfz/exec";</script>
+<script>/* PANGKALAN DATA (Google Sheets + Drive) — URL Web App Apps Script */ window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxr-9Yss7qDR_QgFNL4YAArlDqdfL3uLOo_gUKV37wgS-0UN21KXduqdhRvNAKeuBsg/exec";</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NEON QUIZ // Terminal Tingkatan 2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -369,11 +369,20 @@ $('btnZoomOut').onclick = ()=>applyZoom(data.settings.zoom-0.1);
 /*SOALAN_MULA*/
 /* Soalan TIDAK lagi disimpan di sini. Code.gs menyuntik soalan dari helaian "SOALAN"
    (Google Sheet) ke tempat ini semasa app dibuka. Jika helaian kosong, RAW kekal kosong. */
-const RAW=[];
+let RAW=[];
 /*SOALAN_TAMAT*/
-const MODULES=RAW.map(m=>({id:m.id,nama:m.nama,desc:m.desc,q:m.q.map(r=>({q:r[0],a:r[1],w:r[2],clue:r[3],note:r[4],ctx:r[5]||''}))}));
-const TOTAL_Q=MODULES.reduce((s,m)=>s+m.q.length,0);
-if(!MODULES.length){
+let MODULES=RAW.map(m=>({id:m.id,nama:m.nama,desc:m.desc,q:m.q.map(r=>({q:r[0],a:r[1],w:r[2],clue:r[3],note:r[4],ctx:r[5]||''}))}));
+let TOTAL_Q=MODULES.reduce((s,m)=>s+m.q.length,0);
+function setRaw_(raw){
+  RAW=raw||[];
+  MODULES=RAW.map(m=>({id:m.id,nama:m.nama,desc:m.desc,q:m.q.map(r=>({q:r[0],a:r[1],w:r[2],clue:r[3],note:r[4],ctx:r[5]||''}))}));
+  TOTAL_Q=MODULES.reduce((s,m)=>s+m.q.length,0);
+}
+/* Sentiasa ambil soalan terkini dari Google Sheet (berfungsi juga jika app dihoskan di luar Google) */
+const SOALAN_READY=new Promise(ok=>setTimeout(ok,0))
+  .then(()=>MODULES.length?null:api('soalan',{}).then(r=>{setRaw_(r);}).catch(e=>console.error(e)))
+  .then(()=>{ if(MODULES.length){ const el=document.getElementById('errNama'); if(el&&/Soalan tidak/.test(el.textContent)) el.textContent=''; try{ if(data&&data.user) renderHub() }catch(_){} } else showNoQ_(); });
+function showNoQ_(){
   const errEl=document.getElementById('errNama');
   if(errEl) errEl.textContent='! Soalan tidak dapat dimuatkan. Pastikan helaian "SOALAN" dalam Google Sheet diisi, dan app dibuka melalui URL Web App (bukan fail index.html sahaja).';
 }
@@ -717,7 +726,7 @@ function stats(){
   const pct=Math.round(skor/TOTAL_Q*100);
   const gred=pct>=85?'A':pct>=70?'B':pct>=55?'C':pct>=40?'D':'E';
   const tahap=pct>=85?'CEMERLANG':pct>=70?'KEPUJIAN':pct>=55?'BAIK':pct>=40?'MEMUASKAN':'PERLU USAHA';
-  return {skor,answered,done,pct,gred,tahap,allDone:done===MODULES.length};
+  return {skor,answered,done,pct,gred,tahap,allDone:MODULES.length>0&&done===MODULES.length};
 }
 function certId(){
   if(!data.certId){ data.certId='NQ-'+Date.now().toString(36).toUpperCase().slice(-6)+'-'+Math.floor(Math.random()*900+100); Store.save(data) }
