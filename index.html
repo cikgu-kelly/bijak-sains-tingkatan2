@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NEON QUIZ // Terminal Tingkatan 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05040d; --cyan:#00f0ff; --magenta:#ff2bd6; --yellow:#f9f871;
+  --text:#d8f9ff; --muted:#7fa4b8; --glass:rgba(20,16,45,.55); --border:rgba(0,240,255,.35);
+  --zoom:1;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{font-size:calc(16px * var(--zoom))}
+body{
+  min-height:100vh;min-height:100dvh;background:var(--bg);color:var(--text);
+  font-family:'Share Tech Mono',monospace;overflow-x:hidden;
+  background-image:
+    radial-gradient(circle at 15% 20%,rgba(255,43,214,.18),transparent 40%),
+    radial-gradient(circle at 85% 80%,rgba(0,240,255,.18),transparent 40%),
+    linear-gradient(rgba(0,240,255,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,240,255,.05) 1px,transparent 1px);
+  background-size:auto,auto,40px 40px,40px 40px;
+}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.25) 0 1px,transparent 1px 3px);z-index:50}
+h1,h2,.orb{font-family:'Orbitron',sans-serif;letter-spacing:.08em}
+
+/* ===== TOP BAR ===== */
+.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:.5rem;
+  padding:.6rem 1rem;background:rgba(5,4,13,.75);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);box-shadow:0 0 20px rgba(0,240,255,.25)}
+.brand{font-family:'Orbitron';font-weight:900;font-size:1rem;color:var(--cyan);text-shadow:0 0 8px var(--cyan)}
+.brand span{color:var(--magenta);text-shadow:0 0 8px var(--magenta)}
+.nav{display:flex;gap:.45rem}
+.tbtn{min-width:44px;min-height:44px;padding:0 .8rem;border-radius:8px;cursor:pointer;
+  font-family:'Share Tech Mono';font-size:.9rem;color:var(--cyan);background:rgba(0,240,255,.06);
+  border:1px solid var(--cyan);box-shadow:0 0 8px rgba(0,240,255,.4),inset 0 0 8px rgba(0,240,255,.2);transition:.2s}
+.tbtn:hover,.tbtn:active{background:var(--cyan);color:var(--bg);box-shadow:0 0 18px var(--cyan)}
+.tbtn.m{color:var(--magenta);border-color:var(--magenta);background:rgba(255,43,214,.06);box-shadow:0 0 8px rgba(255,43,214,.4)}
+.tbtn.m:hover,.tbtn.m:active{background:var(--magenta);color:var(--bg);box-shadow:0 0 18px var(--magenta)}
+.zoomlbl{align-self:center;font-size:.75rem;color:var(--muted);min-width:3rem;text-align:center}
+
+/* ===== LAYOUT ===== */
+main{padding:1.5rem 1rem 3rem;display:flex;justify-content:center}
+.screen{display:none;width:100%;max-width:560px;animation:boot .5s ease}
+.screen.active{display:block}
+@keyframes boot{from{opacity:0;transform:translateY(12px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
+
+.glass{position:relative;background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid var(--border);border-radius:16px;padding:1.6rem 1.3rem;
+  box-shadow:0 0 25px rgba(0,240,255,.2),0 0 60px rgba(255,43,214,.12),inset 0 0 20px rgba(0,240,255,.06)}
+.glass::before{content:"";position:absolute;inset:-1px;border-radius:16px;padding:1px;pointer-events:none;
+  background:linear-gradient(135deg,var(--cyan),transparent 40%,transparent 60%,var(--magenta));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+
+.title{text-align:center;font-size:1.7rem;font-weight:900;line-height:1.2;color:#fff;
+  text-shadow:0 0 6px var(--cyan),0 0 18px var(--cyan),0 0 36px var(--magenta);animation:flicker 4s infinite}
+@keyframes flicker{0%,92%,100%{opacity:1}93%{opacity:.4}95%{opacity:1}97%{opacity:.6}}
+.sub{text-align:center;color:var(--muted);margin:.4rem 0 1.4rem;font-size:.9rem}
+.sub b{color:var(--magenta)}
+
+.warn{display:flex;gap:.6rem;align-items:center;padding:.8rem 1rem;margin-bottom:1.4rem;border-radius:10px;
+  border:1px solid var(--yellow);color:var(--yellow);background:rgba(249,248,113,.06);font-size:.9rem;
+  animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 6px rgba(249,248,113,.4)}50%{box-shadow:0 0 22px rgba(249,248,113,.9);text-shadow:0 0 6px var(--yellow)}}
+
+label{display:block;font-size:.8rem;color:var(--cyan);margin:0 0 .35rem;letter-spacing:.1em}
+.field{margin-bottom:1.1rem}
+input{width:100%;min-height:48px;padding:.7rem .9rem;border-radius:8px;font-family:inherit;font-size:1rem;
+  color:#fff;background:rgba(0,0,0,.45);border:1px solid rgba(0,240,255,.4);outline:none;transition:.2s}
+input:focus{border-color:var(--magenta);box-shadow:0 0 14px rgba(255,43,214,.6)}
+input::placeholder{color:#4d6777}
+.err{color:var(--magenta);font-size:.8rem;min-height:1rem;margin-top:.3rem}
+
+.btn{width:100%;min-height:52px;border-radius:10px;cursor:pointer;font-family:'Orbitron';font-weight:700;
+  font-size:1rem;letter-spacing:.15em;color:var(--bg);border:none;
+  background:linear-gradient(90deg,var(--cyan),var(--magenta));
+  box-shadow:0 0 18px rgba(0,240,255,.6),0 0 30px rgba(255,43,214,.4);transition:.2s}
+.btn:hover,.btn:active{transform:translateY(-2px);filter:brightness(1.15)}
+.btn.ghost{background:transparent;color:var(--cyan);border:1px solid var(--cyan);margin-top:.7rem}
+
+.secret{position:absolute;bottom:6px;right:8px;width:30px;height:30px;border:none;background:transparent;
+  color:rgba(255,43,214,.18);font-size:.8rem;cursor:pointer;border-radius:50%}
+.secret:hover{color:var(--magenta)}
+
+.stat{display:flex;justify-content:space-between;padding:.75rem 0;border-bottom:1px dashed rgba(0,240,255,.2)}
+.stat span:first-child{color:var(--muted)}
+.stat span:last-child{color:var(--cyan)}
+.badge{display:inline-block;margin-top:1rem;padding:.3rem .7rem;border:1px solid var(--magenta);border-radius:20px;
+  color:var(--magenta);font-size:.75rem}
+
+/* ===== MODAL ===== */
+.modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:1rem;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(6px)}
+.modal.show{display:flex}
+.modal .glass{max-width:380px;width:100%}
+.modal h2{color:var(--magenta);text-shadow:0 0 10px var(--magenta);font-size:1.1rem;margin-bottom:.8rem}
+.row{display:flex;gap:.6rem;margin-top:.8rem}
+.row .btn{margin:0}
+.toast{position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%) translateY(150%);z-index:70;
+  padding:.8rem 1.2rem;border-radius:10px;background:rgba(5,4,13,.9);border:1px solid var(--cyan);color:var(--cyan);
+  box-shadow:0 0 16px var(--cyan);transition:.35s}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ===== FASA 2 ===== */
+.mods{display:grid;gap:.8rem;margin-top:1rem}
+.mod{display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:1rem;border-radius:12px;cursor:pointer;
+  background:rgba(0,0,0,.35);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:.95rem;text-align:left;transition:.2s;min-height:64px}
+.mod:hover,.mod:active{border-color:var(--magenta);box-shadow:0 0 16px rgba(255,43,214,.5)}
+.mod b{display:block;font-family:'Orbitron';color:var(--cyan);font-size:.9rem;margin-bottom:.2rem}
+.mod small{color:var(--muted)}
+.mod .st{font-size:.75rem;padding:.25rem .6rem;border-radius:20px;border:1px solid var(--muted);color:var(--muted);white-space:nowrap}
+.mod .st.done{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.qhead{display:flex;justify-content:space-between;align-items:center;font-size:.8rem;color:var(--muted);margin-bottom:.8rem;gap:.5rem}
+.qhead .tag{color:var(--magenta)}
+.timer{position:relative;height:8px;border-radius:8px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:.4rem}
+.timer i{position:absolute;inset:0;width:100%;background:linear-gradient(90deg,var(--cyan),var(--magenta));box-shadow:0 0 10px var(--cyan);transition:width .25s linear}
+.timer.clue i{background:var(--yellow);box-shadow:0 0 10px var(--yellow)}
+.tsec{text-align:right;font-family:'Orbitron';font-size:.85rem;color:var(--cyan);margin-bottom:1rem}
+.timer.clue+.tsec{color:var(--yellow)}
+.qtext{font-size:1.1rem;line-height:1.5;color:#fff;margin-bottom:1rem}
+.ctx{font-size:.85rem;color:var(--muted);border-left:2px solid var(--cyan);padding:.4rem .7rem;margin-bottom:.8rem;line-height:1.5}
+.opts{display:grid;gap:.6rem}
+.opt{min-height:54px;padding:.8rem 1rem;border-radius:10px;cursor:pointer;text-align:left;font-family:inherit;font-size:.95rem;line-height:1.4;
+  color:var(--text);background:rgba(0,240,255,.05);border:1px solid rgba(0,240,255,.35);transition:.15s}
+.opt:hover{border-color:var(--cyan);box-shadow:0 0 12px rgba(0,240,255,.5)}
+.opt.ok{border-color:#3dff9a;color:#3dff9a;box-shadow:0 0 16px #3dff9a}
+.opt.bad{border-color:var(--magenta);color:var(--magenta);box-shadow:0 0 16px var(--magenta)}
+.opt:disabled{cursor:default}
+.clue{display:none;margin-top:1rem;padding:.8rem;border-radius:10px;border:1px dashed var(--yellow);color:var(--yellow);font-size:.9rem;animation:pulse 1.8s infinite}
+.clue.show{display:block}
+.skip{margin-top:1rem;background:transparent;color:var(--muted);border:1px solid var(--muted);font-size:.85rem;min-height:44px}
+.holo{border-color:var(--magenta)!important;background:linear-gradient(180deg,rgba(255,43,214,.12),rgba(0,240,255,.08))!important;
+  animation:holo 3s ease-in-out infinite}
+@keyframes holo{0%,100%{box-shadow:0 0 25px rgba(255,43,214,.5)}50%{box-shadow:0 0 40px rgba(0,240,255,.6)}}
+.holo .scan{position:absolute;left:0;right:0;height:2px;background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:scan 2.5s linear infinite;opacity:.6}
+@keyframes scan{from{top:0}to{top:100%}}
+.note{line-height:1.6;font-size:.95rem}
+.note mark{background:transparent;color:var(--cyan);text-shadow:0 0 8px var(--cyan);border-bottom:1px solid var(--cyan)}
+.ans{margin:.6rem 0;padding:.6rem;border-radius:8px;border:1px solid #3dff9a;color:#3dff9a}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:65}
+.big{font-size:2.2rem;text-align:center;font-family:'Orbitron';color:var(--cyan);text-shadow:0 0 14px var(--cyan);margin:1rem 0}
+/* ===== FASA 3 ===== */
+.overall{margin-top:1rem;padding:.9rem;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.35)}
+.overall .lbl{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);margin-bottom:.45rem}
+.overall .lbl b{color:var(--cyan)}
+.pbar{height:10px;border-radius:10px;background:rgba(255,255,255,.08);overflow:hidden}
+.pbar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--magenta));box-shadow:0 0 10px var(--cyan);transition:width .6s}
+.btn.gold{background:linear-gradient(90deg,var(--yellow),var(--magenta));margin-top:1rem;animation:pulse 1.8s infinite}
+.btn.wa{background:linear-gradient(90deg,#25d366,#00f0ff);margin-top:.7rem}
+.certwrap{margin:1rem 0;border-radius:12px;overflow:hidden;border:1px solid var(--magenta);box-shadow:0 0 20px rgba(255,43,214,.5)}
+.certwrap img{display:block;width:100%;height:auto}
+.locked{margin-top:1rem;padding:.8rem;border-radius:10px;border:1px dashed var(--muted);color:var(--muted);font-size:.85rem;text-align:center}
+@media(max-width:420px){.title{font-size:1.35rem}.brand{font-size:.8rem}.zoomlbl{display:none}}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">NEON<span>//</span>QUIZ</div>
+  <nav class="nav">
+    <button class="tbtn" id="btnHome" aria-label="Home">⌂ HOME</button>
+    <button class="tbtn m" id="btnZoomOut" aria-label="Zoom Out">−</button>
+    <span class="zoomlbl" id="zoomLbl">100%</span>
+    <button class="tbtn m" id="btnZoomIn" aria-label="Zoom In">+</button>
+  </nav>
+</header>
+
+<main>
+  <!-- SKRIN MULA -->
+  <section class="screen active" id="screenStart">
+    <div class="glass">
+      <h1 class="title">SISTEM KUIZ<br>TINGKATAN 2</h1>
+      <p class="sub">&gt; Terminal pelajar sedia. <b>Log masuk</b> untuk bermula_</p>
+
+      <div class="warn">⚠ Sila buka pautan ini di Google Chrome untuk paparan terbaik.</div>
+
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="nama">// NAMA PENUH</label>
+          <input id="nama" autocomplete="name" placeholder="Contoh: Ahmad bin Ali">
+          <div class="err" id="errNama"></div>
+        </div>
+        <div class="field">
+          <label for="kelas">// KELAS</label>
+          <input id="kelas" placeholder="Contoh: 2 Bestari">
+          <div class="err" id="errKelas"></div>
+        </div>
+        <button class="btn" type="submit">▶ MULA</button>
+      </form>
+
+      <button class="secret" id="btnSecret" title="">●</button>
+    </div>
+  </section>
+
+  <!-- DASHBOARD MISI -->
+  <section class="screen" id="screenHub">
+    <div class="glass">
+      <h1 class="title" style="font-size:1.3rem">DASHBOARD MISI</h1>
+      <p class="sub">&gt; Ejen <b id="hubNama">-</b> // <span id="hubKelas">-</span>_</p>
+      <div class="overall">
+        <div class="lbl"><span>KEMAJUAN KESELURUHAN</span><b id="ovTxt">0/200</b></div>
+        <div class="pbar"><i id="ovBar" style="width:0%"></i></div>
+      </div>
+      <div id="certSlot"></div>
+      <div class="mods" id="mods"></div>
+      <button class="btn ghost" id="btnLogout">⏻ LOG KELUAR</button>
+    </div>
+  </section>
+
+  <!-- SKRIN KUIZ -->
+  <section class="screen" id="screenQuiz">
+    <div class="glass">
+      <div class="qhead"><span id="qMod">MODUL</span><span class="tag" id="qProg">1/5</span></div>
+      <div class="timer" id="timer"><i id="tbar"></i></div>
+      <div class="tsec" id="tsec">20s</div>
+      <div class="ctx" id="qCtx"></div>
+      <div class="qtext" id="qText"></div>
+      <div class="opts" id="opts"></div>
+      <div class="clue" id="clue"></div>
+      <div class="row">
+        <button class="btn skip" id="btnPause" style="margin-top:0">⏸ REHAT</button>
+        <button class="btn skip" id="btnSkip" style="margin-top:0">⏭ SKIP</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SKRIN TAMAT -->
+  <section class="screen" id="screenEnd">
+    <div class="glass" style="text-align:center">
+      <h1 class="title" style="font-size:1.3rem">MISI SELESAI</h1>
+      <div class="big" id="endScore">0/0</div>
+      <p class="sub" id="endInfo"></p>
+      <button class="btn gold" id="btnEndCert" style="display:none">🏆 LIHAT SIJIL PENCAPAIAN</button>
+      <button class="btn" id="btnBack" style="margin-top:.7rem">◀ DASHBOARD</button>
+    </div>
+  </section>
+  <!-- SKRIN SIJIL -->
+  <section class="screen" id="screenCert">
+    <div class="glass" style="text-align:center">
+      <h1 class="title" style="font-size:1.3rem">SIJIL PENCAPAIAN</h1>
+      <p class="sub">&gt; Tahniah! Semua <b>200 soalan</b> telah diselesaikan_</p>
+      <div class="certwrap"><img id="certImg" alt="Sijil pencapaian"></div>
+      <button class="btn" id="btnPdf">💾 SIMPAN PDF</button>
+      <button class="btn wa" id="btnWa">📲 KONGSI KE WHATSAPP</button>
+      <button class="btn ghost" id="btnCertBack">◀ DASHBOARD</button>
+    </div>
+  </section>
+</main>
+
+<!-- MODAL RESET -->
+<div class="modal" id="modalReset">
+  <div class="glass">
+    <h2>🔒 AKSES ADMIN</h2>
+    <label for="pwd">// KATA LALUAN</label>
+    <input id="pwd" type="password" inputmode="numeric" placeholder="••••••">
+    <div class="err" id="errPwd"></div>
+    <div class="row">
+      <button class="btn ghost" id="btnCancel">BATAL</button>
+      <button class="btn" id="btnConfirm">RESET</button>
+    </div>
+  </div>
+</div>
+
+<!-- POP-UP HOLOGRAM -->
+<div class="modal" id="modalNote">
+  <div class="glass holo" style="max-width:460px">
+    <div class="scan"></div>
+    <h2>◈ DATA HOLOGRAM // NOTA</h2>
+    <div class="ans" id="noteAns"></div>
+    <div class="note" id="noteText"></div>
+    <div class="row">
+      <button class="btn ghost" id="btnSpeak">🔊 ULANG</button>
+      <button class="btn" id="btnNext">TERUS ▶</button>
+    </div>
+  </div>
+</div>
+<canvas id="fx"></canvas>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========= STORAGE ========= */
+const KEY = 'neonQuiz_v2_200';
+const Store = {
+  load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || {user:null, results:[], settings:{zoom:1}} }catch(e){ return {user:null,results:[],settings:{zoom:1}} } },
+  save(d){ localStorage.setItem(KEY, JSON.stringify(d)) },
+  reset(){ localStorage.removeItem(KEY) }
+};
+let data = Store.load();
+
+const $ = id => document.getElementById(id);
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200) }
+
+/* ========= NAVIGASI ========= */
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active', s.id===id)); window.scrollTo({top:0,behavior:'smooth'}) }
+function goHome(){
+  if(data.user){ renderHub(); show('screenHub') } else show('screenStart');
+}
+$('btnHome').onclick = ()=>{ pauseQuiz(); stopTimer(); if(window.speechSynthesis) speechSynthesis.cancel(); $('modalNote').classList.remove('show'); goHome() };
+
+/* ========= ZOOM ========= */
+function applyZoom(z){
+  z = Math.min(1.6, Math.max(0.7, Math.round(z*10)/10));
+  data.settings.zoom = z; Store.save(data);
+  document.documentElement.style.setProperty('--zoom', z);
+  $('zoomLbl').textContent = Math.round(z*100)+'%';
+}
+$('btnZoomIn').onclick  = ()=>applyZoom(data.settings.zoom+0.1);
+$('btnZoomOut').onclick = ()=>applyZoom(data.settings.zoom-0.1);
+
+/* ========= BANK SOALAN: 200 SOALAN (Sains T2 – Set 2) =========
+   Format: [soalan, jawapan, [salah1,salah2,salah3], klue, nota, konteks?]  */
+const CA='Eksperimen: Bikar A (150 ml air + 10 g garam halus) dan Bikar B (150 ml air + 10 g garam kasar) dikacau pada kadar yang sama. Garam halus melarut dalam 12 saat, garam kasar dalam 50 saat.';
+const CB='Ali melarutkan 3 g serbuk kopi dan 3 g butiran kopi ke dalam dua cawan berisi 200 ml air. Serbuk kopi melarut dalam 15 saat, butiran kopi dalam 60 saat.';
+const CC='Mei Ling melarutkan 5 g gula ke dalam 100 ml air bersuhu 30°C (90 saat) dan 100 ml air bersuhu 70°C (25 saat).';
+const CD='Dua bikar mengandungi 100 ml air dan 5 g garam. Bikar X dikacau (larut dalam 20 saat), Bikar Y tidak dikacau (larut dalam 3 minit).';
+const CF='Daniel menolak sebuah troli berjisim 40 kg di atas jalan berbatu dengan daya 80 N. Daya geseran ialah 80 N dan troli bergerak dengan laju seragam.';
+const CJ='Rajah: Encik Lim memegang dada kerana sakit jantung (J). Siti mempunyai ruam gatal pada lengan yang disebabkan oleh kulat (K).';
+const CW='Rajah kitar air: Air laut naik ke atmosfera akibat haba matahari (Proses R). Tumbuhan membebaskan wap air (transpirasi). Haiwan membebaskan air melalui respirasi, perpeluhan dan perkumuhan. Wap air membentuk awan lalu turun sebagai hujan.';
+const CX='Rajah kitar oksigen dan karbon: Proses Y menyerap karbon dioksida dan membebaskan oksigen. Proses X menggunakan oksigen dan membebaskan karbon dioksida. Pembakaran dan penguraian juga membebaskan karbon dioksida.';
+
+const RAW=[
+ {id:'m1',nama:'MODUL 1: PEMERHATIAN & INFERENS',desc:'Keterlarutan & kemahiran proses sains',q:[
+  ['Apakah pemerhatian yang betul bagi eksperimen ini?','Garam halus dalam Bikar A melarut lebih cepat (12 saat) berbanding garam kasar dalam Bikar B (50 saat)',['Garam kasar melarut lebih cepat daripada garam halus','Kedua-dua garam melarut dalam masa yang sama','Garam halus tidak melarut langsung'],'Pemerhatian = apa yang DILIHAT dan DIUKUR. Bandingkan masa pada jam randik.','Pemerhatian menyatakan fakta yang dilihat: <mark>garam halus</mark> mengambil <mark>masa lebih singkat</mark> (12 s) untuk melarut berbanding garam kasar (50 s).',CA],
+  ['Apakah inferens yang sesuai bagi pemerhatian tersebut?','Garam halus bersaiz kecil mempunyai luas permukaan yang lebih besar untuk bersentuhan dengan air, maka ia melarut lebih cepat',['Garam kasar lebih berat daripada garam halus','Air dalam Bikar A lebih banyak','Garam halus mengandungi lebih sedikit garam'],'Inferens = penerangan awal. Kaitkan saiz dengan LUAS PERMUKAAN.','Inferens menerangkan sebab pemerhatian: saiz kecil → <mark>luas permukaan besar</mark> → lebih banyak sentuhan dengan air → <mark>melarut lebih cepat</mark>.',CA],
+  ['Apakah maksud kemahiran memerhati?','Menggunakan deria untuk mengumpul maklumat tentang objek atau fenomena',['Membuat kesimpulan awal tentang sesuatu kejadian','Meramal apa yang akan berlaku pada masa depan','Mengukur menggunakan alat yang sesuai sahaja'],'Memerhati melibatkan DERIA: penglihatan, pendengaran, sentuhan, bau, rasa.','Memerhati ialah menggunakan <mark>deria</mark> (lihat, dengar, sentuh, bau, rasa) untuk <mark>mengumpul maklumat</mark>.'],
+  ['Apakah maksud membuat inferens?','Membuat kesimpulan awal yang munasabah untuk menerangkan sesuatu pemerhatian',['Menggunakan deria untuk mengumpul maklumat','Menyatakan apa yang dilihat dalam eksperimen','Menyusun data dalam bentuk jadual'],'Inferens bukan apa yang dilihat, tetapi TAFSIRAN awal.','Inferens ialah <mark>kesimpulan awal</mark> yang <mark>munasabah</mark>, mungkin benar atau tidak, untuk <mark>menerangkan pemerhatian</mark>.'],
+  ['Apakah pemerhatian yang betul?','Serbuk kopi melarut lebih cepat berbanding butiran kopi',['Butiran kopi melarut lebih cepat berbanding serbuk kopi','Serbuk kopi tidak berubah warna','Kedua-dua kopi tidak melarut'],'Lihat masa: 15 saat lawan 60 saat.','<mark>Serbuk kopi</mark> (15 s) melarut <mark>lebih cepat</mark> daripada butiran kopi (60 s).',CB],
+  ['Apakah inferens bagi pemerhatian dalam eksperimen kopi?','Serbuk kopi mempunyai luas permukaan yang lebih besar, jadi lebih cepat melarut',['Butiran kopi lebih manis','Air cawan pertama lebih sejuk','Serbuk kopi lebih berat daripada butiran kopi'],'Saiz zarah kecil = luas permukaan besar.','Zat terlarut bersaiz kecil seperti <mark>serbuk</mark> mempunyai <mark>luas permukaan lebih besar</mark> → <mark>kadar keterlarutan lebih tinggi</mark>.',CB],
+  ['Apakah pemerhatian yang betul?','Gula melarut lebih cepat dalam air bersuhu 70°C berbanding air bersuhu 30°C',['Gula melarut lebih cepat dalam air bersuhu 30°C','Suhu air tidak mempengaruhi masa melarut','Gula tidak melarut dalam air panas'],'Bandingkan 25 saat dengan 90 saat.','Dalam air <mark>70°C</mark>, gula hanya mengambil <mark>25 saat</mark> untuk melarut berbanding 90 saat dalam air 30°C.',CC],
+  ['Apakah inferens bagi pemerhatian dalam eksperimen suhu?','Suhu yang tinggi menyebabkan zarah air bergerak lebih laju, maka gula melarut lebih cepat',['Air panas mengandungi kurang zarah air','Gula menjadi lebih kecil apabila dipanaskan','Air sejuk lebih banyak isi padunya'],'Haba memberi TENAGA KINETIK kepada zarah.','Suhu tinggi → zarah pelarut mempunyai <mark>tenaga kinetik lebih tinggi</mark> → bergerak lebih laju → <mark>gula melarut lebih cepat</mark>.',CC],
+  ['Apakah pemerhatian yang betul?','Garam dalam Bikar X yang dikacau melarut lebih cepat daripada garam dalam Bikar Y',['Garam dalam Bikar Y melarut lebih cepat','Mengacau menyebabkan garam tidak melarut','Kedua-dua bikar melarut dalam 20 saat'],'Bikar X: 20 saat. Bikar Y: 3 minit.','Bikar yang <mark>dikacau</mark> (X) melarut dalam <mark>20 saat</mark>, jauh lebih cepat berbanding 3 minit bagi bikar yang tidak dikacau.',CD],
+  ['Apakah inferens bagi kesan mengacau?','Mengacau membawa zarah air bersentuhan dengan zarah garam dengan lebih kerap',['Mengacau menambah jisim garam','Mengacau menyejukkan air','Mengacau mengurangkan isi padu air'],'Fikirkan tentang kekerapan SENTUHAN zarah.','Mengacau mempercepatkan <mark>sentuhan zarah pelarut dengan zat terlarut</mark> → <mark>kadar keterlarutan meningkat</mark>.',CD],
+  ['Antara pernyataan berikut, yang manakah PEMERHATIAN?','Garam halus hilang daripada pandangan selepas 12 saat',['Garam halus melarut cepat kerana luas permukaannya besar','Garam kasar mungkin mempunyai zarah yang lebih rapat','Saiz garam mempengaruhi kadar keterlarutan'],'Pemerhatian tidak mengandungi perkataan KERANA atau MUNGKIN.','Pemerhatian hanya menyatakan <mark>apa yang dilihat</mark>. Pernyataan yang mempunyai sebab ("kerana") ialah <mark>inferens</mark>.',CA],
+  ['Antara pernyataan berikut, yang manakah INFERENS?','Butiran kopi lambat melarut kerana luas permukaannya kecil',['Butiran kopi mengambil masa 60 saat untuk melarut','Air dalam cawan bertukar warna perang','Serbuk kopi melarut dalam 15 saat'],'Inferens memberi SEBAB kepada apa yang diperhatikan.','Inferens <mark>menerangkan sebab</mark>: butiran kopi lambat melarut <mark>kerana luas permukaan kecil</mark>.',CB],
+  ['Apakah hipotesis yang sesuai bagi eksperimen garam halus dan garam kasar?','Semakin kecil saiz zat terlarut, semakin singkat masa untuk melarut',['Semakin besar saiz zat terlarut, semakin singkat masa untuk melarut','Semakin banyak air, semakin lama garam melarut','Garam tidak melarut dalam air'],'Hipotesis mengaitkan PU dimanipulasikan dengan PU bergerak balas.','Hipotesis: <mark>semakin kecil saiz</mark> zat terlarut, <mark>semakin singkat masa</mark> untuk melarut.',CA],
+  ['Apakah tujuan eksperimen garam halus dan garam kasar?','Mengkaji kesan saiz zat terlarut terhadap kadar keterlarutan',['Mengkaji kesan suhu terhadap kadar keterlarutan','Mengkaji jisim garam dalam air laut','Mengkaji takat didih air'],'Apa yang berbeza antara Bikar A dan Bikar B?','Tujuan: mengkaji <mark>kesan saiz zat terlarut</mark> terhadap <mark>kadar keterlarutan</mark>.',CA],
+  ['Dalam larutan garam, garam dikenali sebagai…','Zat terlarut',['Pelarut','Larutan tepu','Mendakan'],'Bahan yang DILARUTKAN.','<mark>Zat terlarut</mark> ialah bahan yang <mark>melarut</mark> dalam pelarut, contohnya garam dan gula.'],
+  ['Dalam larutan gula, air dikenali sebagai…','Pelarut',['Zat terlarut','Ampaian','Hablur'],'Bahan yang MELARUTKAN bahan lain.','<mark>Pelarut</mark> ialah bahan yang <mark>melarutkan zat terlarut</mark>. Air ialah pelarut yang paling biasa.'],
+  ['Apakah yang terbentuk apabila zat terlarut melarut dalam pelarut?','Larutan',['Pelarut','Ampaian','Hablur'],'Zat terlarut + pelarut = ?','<mark>Zat terlarut + pelarut = larutan</mark>. Contoh: garam + air = larutan garam.'],
+  ['Jika garam yang lebih halus seperti serbuk digunakan dalam Bikar A, ramalkan masa untuk ia melarut.','Kurang daripada 12 saat',['Lebih daripada 50 saat','Tepat 50 saat','Garam tidak akan melarut'],'Lebih halus = luas permukaan lebih besar.','Meramal: saiz <mark>lebih kecil</mark> → <mark>masa lebih singkat</mark> daripada 12 saat.',CA],
+  ['Apakah hubungan antara saiz zat terlarut dengan masa untuk melarut?','Semakin kecil saiz zat terlarut, semakin singkat masa untuk melarut',['Semakin kecil saiz zat terlarut, semakin lama masa untuk melarut','Saiz tidak mempengaruhi masa melarut','Semakin besar saiz, semakin tinggi kadar keterlarutan'],'Data: halus 12 s, kasar 50 s.','<mark>Saiz kecil → masa singkat → kadar keterlarutan tinggi</mark>.',CA],
+  ['Mengapakah air dikenali sebagai pelarut universal?','Air boleh melarutkan banyak jenis bahan',['Air tidak boleh melarutkan apa-apa bahan','Air hanya melarutkan garam','Air ialah bahan yang paling berat'],'Universal = boleh digunakan secara meluas.','Air ialah <mark>pelarut universal</mark> kerana ia <mark>boleh melarutkan banyak bahan</mark> seperti garam, gula dan kopi.']
+ ]},
+ {id:'m2',nama:'MODUL 2: PEMBOLEH UBAH & UJIAN ADIL',desc:'Pemboleh ubah, jadual, definisi operasi',q:[
+  ['Apakah pemboleh ubah dimanipulasikan dalam eksperimen ini?','Saiz garam',['Masa untuk garam melarut','Isi padu air','Kadar mengacau'],'Apa yang SENGAJA DIUBAH oleh penyelidik?','PU <mark>dimanipulasikan</mark> ialah faktor yang <mark>diubah</mark>: <mark>saiz garam</mark> (halus / kasar).',CA],
+  ['Apakah pemboleh ubah bergerak balas dalam eksperimen ini?','Masa untuk garam melarut',['Saiz garam','Jisim garam','Isi padu air'],'Apa yang DIUKUR dengan jam randik?','PU <mark>bergerak balas</mark> ialah hasil yang <mark>diukur</mark>: <mark>masa untuk garam melarut</mark>.',CA],
+  ['Apakah pemboleh ubah yang dimalarkan dalam eksperimen ini?','Isi padu air, jisim garam dan kadar mengacau',['Saiz garam dan masa melarut','Masa melarut sahaja','Jenis garam dan saiz garam'],'Perkara yang SAMA dalam kedua-dua bikar.','PU <mark>dimalarkan</mark>: <mark>isi padu air 150 ml</mark>, <mark>jisim garam 10 g</mark> dan <mark>kadar mengacau</mark>.',CA],
+  ['Apakah pemboleh ubah dimanipulasikan dalam eksperimen kopi?','Saiz kopi (serbuk atau butiran)',['Masa kopi melarut','Isi padu air dalam cawan','Jisim kopi'],'Apa yang berbeza antara dua cawan?','Yang <mark>diubah</mark> ialah <mark>saiz kopi</mark>: serbuk dan butiran.',CB],
+  ['Apakah pemboleh ubah dimanipulasikan dan bergerak balas dalam eksperimen suhu?','Dimanipulasikan: suhu air | Bergerak balas: masa untuk gula melarut',['Dimanipulasikan: masa melarut | Bergerak balas: suhu air','Dimanipulasikan: jisim gula | Bergerak balas: isi padu air','Dimanipulasikan: isi padu air | Bergerak balas: saiz gula'],'Suhu 30°C dan 70°C sengaja dibezakan.','Dimanipulasikan: <mark>suhu air</mark>. Bergerak balas: <mark>masa untuk gula melarut</mark>.',CC],
+  ['Apakah pemboleh ubah yang dimalarkan dalam eksperimen suhu?','Jisim gula, saiz gula dan isi padu air',['Suhu air','Masa untuk gula melarut','Suhu air dan masa melarut'],'Apa yang sama dalam kedua-dua bekas?','Dimalarkan: <mark>jisim gula 5 g</mark>, <mark>saiz gula</mark> dan <mark>isi padu air 100 ml</mark>.',CC],
+  ['Apakah pemboleh ubah dimanipulasikan dalam eksperimen Bikar X dan Y?','Mengacau atau tidak mengacau larutan',['Masa garam melarut','Isi padu air','Jisim garam'],'Bezanya: satu dikacau, satu tidak.','PU dimanipulasikan: <mark>tindakan mengacau</mark> (dikacau / tidak dikacau).',CD],
+  ['Lengkapkan jadual keputusan: Garam kasar → masa melarut (saat) = ?','50',['12','62','38'],'Baca semula maklumat Bikar B.','Jadual: <mark>Garam halus = 12 s</mark>, <mark>Garam kasar = 50 s</mark>.',CA],
+  ['Lengkapkan jadual keputusan: Suhu 70°C → masa gula melarut (saat) = ?','25',['90','70','30'],'Air panas = masa lebih singkat.','Jadual: <mark>30°C = 90 s</mark>, <mark>70°C = 25 s</mark>.',CC],
+  ['Apakah unit yang sesuai untuk lajur masa dalam jadual keputusan?','Saat (s)',['Gram (g)','Mililiter (ml)','Newton (N)'],'Jam randik mengukur…','Masa diukur dalam unit <mark>saat (s)</mark>. Gram untuk jisim, ml untuk isi padu.'],
+  ['Apakah alat yang digunakan untuk mengukur masa garam melarut?','Jam randik',['Termometer','Silinder penyukat','Neraca tiga alur'],'Alat pengukur masa yang tepat di makmal.','<mark>Jam randik</mark> digunakan untuk mengukur <mark>masa</mark>. Silinder penyukat untuk isi padu, termometer untuk suhu.'],
+  ['Apakah definisi secara operasi bagi kadar keterlarutan dalam eksperimen garam?','Masa yang diambil oleh garam untuk melarut sepenuhnya dalam 150 ml air, diukur dengan jam randik',['Jisim garam yang dimasukkan ke dalam bikar','Isi padu air di dalam bikar','Kelajuan rod kaca mengacau larutan'],'Nyatakan apa yang DIBUAT dan DIPERHATIKAN untuk mengukurnya.','Definisi secara operasi: kadar keterlarutan ditunjukkan oleh <mark>masa garam melarut sepenuhnya</mark>, diukur menggunakan <mark>jam randik</mark>.',CA],
+  ['Apakah maksud definisi secara operasi?','Memberi tafsiran tentang sesuatu konsep berdasarkan apa yang dilakukan dan diperhatikan',['Menyatakan maksud perkataan dari kamus','Meramal keputusan eksperimen','Menyusun data dalam jadual'],'Operasi = tindakan dalam eksperimen.','Definisi secara operasi = tafsiran konsep berdasarkan <mark>apa yang dilakukan</mark> dan <mark>apa yang diperhatikan</mark>.'],
+  ['Wajarkan mengapa eksperimen garam ini dijalankan secara adil.','Hanya saiz garam berbeza, manakala isi padu air, jisim garam dan kadar mengacau ditetapkan sama',['Kerana dua jenis garam digunakan','Kerana masa melarut berbeza','Kerana Bikar B menggunakan garam yang lebih besar'],'Ujian adil = hanya SATU faktor diubah.','Ujian adil: hanya <mark>satu pemboleh ubah diubah</mark>; yang lain <mark>dimalarkan</mark> supaya keputusan tepat.',CA],
+  ['Mengapakah jisim garam dalam kedua-dua bikar mestilah sama?','Supaya perbezaan masa melarut hanya disebabkan oleh saiz garam',['Supaya garam lebih masin','Supaya air lebih cepat panas','Supaya bikar tidak pecah'],'Jika jisim berbeza, apakah puncanya nanti tidak jelas?','Jisim dimalarkan supaya <mark>hanya saiz garam</mark> yang mempengaruhi <mark>masa melarut</mark>.',CA],
+  ['Mengapakah kedua-dua bikar perlu dikacau pada kadar yang sama?','Kerana kadar mengacau juga mempengaruhi kadar keterlarutan',['Kerana mengacau menambah jisim garam','Kerana bikar akan pecah jika tidak dikacau','Kerana air akan menyejat'],'Mengacau ialah satu faktor keterlarutan.','Mengacau <mark>mempengaruhi kadar keterlarutan</mark>, jadi ia mesti <mark>dimalarkan</mark>.',CA],
+  ['Jika Bikar B dikacau lebih laju daripada Bikar A, apakah kesannya terhadap eksperimen?','Eksperimen menjadi tidak adil',['Eksperimen menjadi lebih tepat','Garam kasar tidak akan melarut','Tiada kesan langsung'],'Lebih daripada satu faktor berubah.','Jika dua faktor berubah serentak, eksperimen <mark>tidak adil</mark> kerana punca sebenar tidak dapat dipastikan.',CA],
+  ['Apakah maksud pemboleh ubah dimanipulasikan?','Faktor yang sengaja diubah oleh penyelidik dalam eksperimen',['Faktor yang diukur dalam eksperimen','Faktor yang ditetapkan sama','Keputusan akhir eksperimen'],'Manipulasi = ubah.','PU <mark>dimanipulasikan</mark> ialah faktor yang <mark>sengaja diubah</mark>.'],
+  ['Apakah maksud pemboleh ubah bergerak balas?','Faktor yang berubah dan diukur akibat perubahan pemboleh ubah dimanipulasikan',['Faktor yang sengaja diubah','Faktor yang ditetapkan sama','Alat yang digunakan'],'Ia "bertindak balas" terhadap perubahan.','PU <mark>bergerak balas</mark> ialah faktor yang <mark>diukur</mark> kerana ia berubah mengikut PU dimanipulasikan.'],
+  ['Apakah hubungan antara masa melarut dengan kadar keterlarutan?','Semakin singkat masa melarut, semakin tinggi kadar keterlarutan',['Semakin lama masa melarut, semakin tinggi kadar keterlarutan','Masa tidak berkaitan dengan kadar keterlarutan','Kadar keterlarutan sentiasa sama'],'Kadar = seberapa CEPAT.','<mark>Masa singkat = kadar keterlarutan tinggi</mark>. Masa panjang = kadar rendah.']
+ ]},
+ {id:'m3',nama:'MODUL 3: ELEKTROSTATIK & KILAT',desc:'Cas elektrik & kejadian kilat',q:[
+  ['Apakah maksud elektrostatik?','Cas elektrik yang terkumpul dan tidak bergerak pada permukaan sesuatu objek',['Arus elektrik yang mengalir dalam wayar','Tenaga daripada sel suria','Daya tarikan magnet'],'Statik = pegun / tidak bergerak.','<mark>Elektrostatik</mark> ialah <mark>cas elektrik pegun</mark> yang <mark>terkumpul pada permukaan</mark> objek.'],
+  ['Apakah dua jenis cas elektrik?','Cas positif dan cas negatif',['Cas utara dan cas selatan','Cas panas dan cas sejuk','Cas besar dan cas kecil'],'Proton (+), elektron (-).','Dua jenis cas: <mark>positif (+)</mark> dan <mark>negatif (−)</mark>.'],
+  ['Apakah yang berlaku apabila dua objek bercas sama didekatkan?','Tolak-menolak',['Tarik-menarik','Tiada kesan','Menjadi neutral'],'Cas sama…','<mark>Cas sama tolak-menolak</mark>, cas berlainan tarik-menarik.'],
+  ['Apakah yang berlaku apabila objek bercas positif didekatkan dengan objek bercas negatif?','Tarik-menarik',['Tolak-menolak','Tiada kesan','Kedua-duanya meletup'],'Cas berlainan…','<mark>Cas berlainan tarik-menarik</mark>.'],
+  ['Zarah manakah yang berpindah apabila dua objek digosok antara satu sama lain?','Elektron',['Proton','Neutron','Nukleus'],'Zarah bercas negatif yang ringan.','Semasa geseran, <mark>elektron</mark> berpindah dari satu objek ke objek lain.'],
+  ['Objek yang kehilangan elektron akan menjadi…','Bercas positif',['Bercas negatif','Neutral','Bermagnet'],'Kurang elektron (−) = lebih proton (+).','Kehilangan elektron → <mark>bercas positif</mark>.'],
+  ['Objek yang menerima elektron akan menjadi…','Bercas negatif',['Bercas positif','Neutral','Panas'],'Tambah elektron (−).','Menerima elektron → <mark>bercas negatif</mark>.'],
+  ['Bagaimanakah awan ribut menjadi bercas?','Geseran antara titisan air, kristal ais dan udara dalam awan',['Cahaya matahari memanaskan awan','Angin meniup awan ke laut','Awan menyerap cas daripada bumi'],'Pergerakan zarah dalam awan menyebabkan geseran.','Dalam awan ribut, <mark>geseran</mark> antara <mark>titisan air, kristal ais dan udara</mark> menyebabkan cas terkumpul.'],
+  ['Bahagian bawah awan ribut biasanya bercas…','Negatif',['Positif','Neutral','Magnet'],'Elektron berkumpul di dasar awan.','<mark>Dasar awan</mark> terkumpul <mark>cas negatif</mark>; bahagian atas awan bercas positif.'],
+  ['Apakah yang berlaku pada permukaan bumi di bawah awan bercas negatif?','Permukaan bumi menjadi bercas positif secara aruhan',['Permukaan bumi menjadi bercas negatif','Permukaan bumi menjadi bermagnet','Tiada perubahan'],'Cas berlainan tarik-menarik.','Cas negatif awan <mark>mengaruh cas positif</mark> pada permukaan bumi di bawahnya.'],
+  ['Terangkan bagaimana kilat berlaku.','Cas negatif yang terlalu banyak di dasar awan dinyahcas ke bumi atau awan lain, menghasilkan cahaya yang terang',['Matahari memantulkan cahaya pada awan','Awan berlanggar dan pecah','Hujan lebat menghasilkan cahaya'],'Kilat = nyahcas elektrostatik secara besar-besaran.','Apabila <mark>cas negatif terkumpul banyak</mark> di dasar awan, ia <mark>dinyahcas</mark> melalui udara ke <mark>bumi yang bercas positif</mark> → pancaran cahaya = <mark>kilat</mark>.'],
+  ['Mengapakah guruh kedengaran selepas kilat?','Udara dipanaskan dengan cepat oleh kilat lalu mengembang secara mendadak dan menghasilkan bunyi',['Awan berlanggar dengan gunung','Hujan jatuh ke atas bumbung','Bumi bergegar'],'Kilat sangat panas.','Kilat <mark>memanaskan udara</mark> → udara <mark>mengembang mendadak</mark> → bunyi <mark>guruh</mark>.'],
+  ['Mengapakah kita nampak kilat dahulu sebelum mendengar guruh?','Cahaya bergerak lebih laju daripada bunyi',['Bunyi bergerak lebih laju daripada cahaya','Mata lebih sensitif daripada telinga','Guruh berlaku lebih lewat di awan'],'Bandingkan kelajuan cahaya dan bunyi.','<mark>Cahaya</mark> (300 000 km/s) bergerak <mark>jauh lebih laju</mark> daripada bunyi (≈340 m/s).'],
+  ['Apakah alat yang digunakan untuk mengesan kehadiran cas elektrostatik?','Elektroskop daun emas',['Termometer','Ammeter','Neraca spring'],'Daun logam nipis yang mengembang.','<mark>Elektroskop daun emas</mark> digunakan untuk <mark>mengesan cas</mark>; daunnya mengembang apabila bercas.'],
+  ['Antara berikut, yang manakah contoh elektrostatik dalam kehidupan harian?','Rambut tertarik pada sikat plastik selepas menyikat rambut kering',['Lampu menyala apabila suis dihidupkan','Kipas berputar','Magnet melekat pada peti sejuk'],'Cari situasi geseran yang menghasilkan cas.','Menyikat rambut → <mark>geseran</mark> → sikat <mark>bercas</mark> → menarik rambut.'],
+  ['Mengapakah belon yang digosok pada rambut boleh melekat pada dinding?','Belon menjadi bercas dan menarik dinding yang neutral',['Belon menjadi basah','Belon mengandungi gam','Udara dalam belon menjadi panas'],'Objek bercas boleh menarik objek neutral.','Belon <mark>bercas</mark> selepas geseran dan <mark>menarik</mark> permukaan dinding neutral.'],
+  ['Apakah maksud nyahcas?','Proses peneutralan cas pada objek bercas',['Proses menambah cas pada objek','Proses mengecas bateri','Proses menghasilkan magnet'],'Nyah = buang.','<mark>Nyahcas</mark> ialah proses <mark>meneutralkan cas</mark>; kilat ialah contoh nyahcas besar.'],
+  ['Antara berikut, yang manakah aplikasi elektrostatik?','Mesin fotostat dan penyemburan cat kereta',['Kompas dan magnet bar','Termometer dan barometer','Teleskop dan mikroskop'],'Teknologi yang menggunakan tarikan cas.','<mark>Mesin fotostat</mark>, <mark>penyembur cat</mark> dan <mark>pemendak elektrostatik</mark> menggunakan prinsip tarikan cas.'],
+  ['Mengapakah lori tangki minyak dipasang rantai logam yang menyentuh jalan?','Untuk mengalirkan cas elektrostatik ke bumi supaya tidak berlaku percikan api',['Untuk hiasan sahaja','Untuk menambah berat lori','Untuk membunyikan amaran'],'Cas yang terkumpul boleh menghasilkan percikan.','Rantai logam <mark>membumikan cas</mark> → elak <mark>percikan api</mark> yang boleh membakar minyak.'],
+  ['Apakah maksud pembumian?','Mengalirkan cas elektrik ke bumi melalui konduktor',['Menanam pokok di dalam tanah','Menyimpan cas di dalam bateri','Mengasingkan cas dengan penebat'],'Bumi menerima cas dengan selamat.','<mark>Pembumian</mark> = menyalurkan cas ke <mark>bumi</mark> melalui <mark>konduktor</mark>.']
+ ]},
+ {id:'m4',nama:'MODUL 4: KESELAMATAN DARIPADA KILAT',desc:'Penangkap kilat & tempat berteduh',q:[
+  ['Apakah alat yang dipasang untuk melindungi bangunan tinggi daripada sambaran kilat?','Penangkap kilat (rod kilat)',['Antena televisyen','Penyaman udara','Panel suria'],'Rod logam di puncak bangunan.','<mark>Penangkap kilat</mark> melindungi bangunan dengan <mark>menyalurkan cas ke bumi</mark>.'],
+  ['Di manakah penangkap kilat dipasang pada sebuah menara?','Di bahagian paling tinggi menara',['Di tingkat bawah','Di dalam lif','Di tempat letak kereta'],'Kilat menyambar titik tertinggi.','Penangkap kilat dipasang di <mark>bahagian tertinggi</mark> supaya kilat <mark>menyambar rod</mark>, bukan bangunan.'],
+  ['Apakah bahan yang biasa digunakan untuk membuat penangkap kilat?','Kuprum',['Plastik','Kayu','Getah'],'Konduktor elektrik yang sangat baik.','<mark>Kuprum</mark> ialah <mark>konduktor elektrik yang baik</mark>.'],
+  ['Apakah fungsi jalur kuprum tebal pada sistem penangkap kilat?','Mengalirkan cas elektrik dari rod ke bumi dengan selamat',['Menghias dinding bangunan','Menyimpan cas elektrik','Menghalang hujan masuk'],'Laluan cas ke tanah.','<mark>Jalur kuprum</mark> menjadi <mark>laluan cas</mark> dari rod ke <mark>plat bumi</mark>.'],
+  ['Apakah fungsi plat kuprum yang ditanam di dalam tanah?','Menyalurkan cas elektrik ke dalam bumi',['Mengukuhkan asas bangunan','Mengesan gempa bumi','Menyerap air hujan'],'Hujung akhir sistem pembumian.','<mark>Plat kuprum</mark> dalam tanah <mark>menyalurkan cas ke bumi</mark> dengan selamat.'],
+  ['Mengapakah hujung rod penangkap kilat dibuat tajam?','Memudahkan cas terkumpul dan dinyahcas',['Supaya burung tidak hinggap','Supaya nampak cantik','Supaya rod lebih ringan'],'Cas tertumpu pada bahagian tajam.','Hujung <mark>tajam</mark> menumpukan cas → <mark>memudahkan nyahcas</mark>.'],
+  ['Wajarkan pemasangan penangkap kilat pada menara telekomunikasi.','Cas kilat disalurkan ke bumi dengan selamat, jadi menara tidak rosak atau terbakar',['Menara menjadi lebih tinggi','Isyarat telefon menjadi lebih kuat','Menara tidak perlu diselenggara'],'Apakah bahaya jika kilat menyambar terus bangunan?','Penangkap kilat <mark>melindungi struktur</mark> dengan menyalurkan cas ke bumi → <mark>elak kebakaran dan kerosakan</mark>.'],
+  ['Hafiz sedang bermain di padang ketika kilat sabung-menyabung. Dia boleh berteduh di dalam bas sekolah atau di bawah pokok besar. Tempat manakah lebih selamat?','Di dalam bas kerana badan logam bas mengalirkan cas di bahagian luar terus ke bumi',['Di bawah pokok kerana daun melindungi daripada hujan','Di bawah pokok kerana pokok tidak mengalirkan elektrik','Kedua-duanya sama selamat'],'Kenderaan berbadan logam bertindak seperti sangkar pelindung.','<mark>Kenderaan berbadan logam</mark> menyalurkan cas di <mark>permukaan luar</mark> ke bumi; penumpang di dalam selamat.'],
+  ['Mengapakah kita tidak boleh berteduh di bawah pokok semasa kilat?','Pokok yang tinggi mudah disambar kilat dan cas boleh melompat ke badan kita',['Pokok akan tumbang kerana hujan','Pokok menyerap semua cas','Daun pokok terlalu basah'],'Objek tinggi menjadi sasaran kilat.','<mark>Pokok tinggi</mark> mudah <mark>disambar</mark>; cas boleh <mark>melompat ke badan</mark> orang yang berteduh.'],
+  ['Jika berada di kawasan lapang tanpa tempat berteduh semasa kilat, apakah yang patut dilakukan?','Mencangkung serendah mungkin dengan kaki rapat dan kepala tunduk',['Berdiri tegak sambil mengangkat tangan','Berbaring di atas rumput basah','Berlari ke atas bukit'],'Kurangkan ketinggian dan sentuhan dengan tanah.','<mark>Mencangkung rendah</mark>, <mark>kaki rapat</mark> → kurangkan risiko disambar.'],
+  ['Mengapakah kita tidak boleh menggunakan payung berbatang logam ketika kilat?','Logam ialah konduktor dan boleh menarik sambaran kilat',['Payung akan rosak ditiup angin','Payung logam terlalu berat','Payung logam berkarat'],'Logam = konduktor.','Objek <mark>logam</mark> ialah <mark>konduktor</mark> yang boleh menjadi laluan cas kilat.'],
+  ['Semasa ribut petir di rumah, apakah tindakan yang selamat?','Mencabut palam peralatan elektrik',['Menggunakan telefon berwayar','Mandi di bilik air','Berdiri di tepi tingkap terbuka'],'Kilat boleh masuk melalui talian elektrik.','<mark>Cabut palam</mark> peralatan supaya <mark>lonjakan elektrik</mark> daripada kilat tidak merosakkannya.'],
+  ['Mengapakah kita perlu keluar dari kolam renang semasa ribut petir?','Air ialah konduktor elektrik dan kepala perenang menjadi titik tinggi di kawasan lapang',['Air kolam menjadi terlalu sejuk','Hujan mengotorkan kolam','Klorin menjadi beracun'],'Air + kawasan terbuka = bahaya.','<mark>Air mengalirkan elektrik</mark>; berada dalam kolam di kawasan terbuka sangat <mark>berbahaya</mark>.'],
+  ['Tempat manakah yang paling selamat semasa ribut petir?','Di dalam bangunan yang dilengkapi penangkap kilat',['Di bawah pokok yang rendang','Di puncak bukit','Di tengah padang bola'],'Bangunan berpelindung.','<mark>Bangunan dengan penangkap kilat</mark> ialah tempat berlindung yang <mark>paling selamat</mark>.'],
+  ['Mengapakah kita perlu mengelak daripada berdiri di puncak bukit ketika kilat?','Kita menjadi objek tertinggi dan mudah disambar kilat',['Bukit lebih sejuk','Pemandangan tidak jelas','Angin terlalu kuat sahaja'],'Kilat mencari laluan terpendek ke bumi.','Berada di <mark>tempat tinggi</mark> menjadikan kita <mark>sasaran kilat</mark>.'],
+  ['Berapa lamakah sebaiknya kita menunggu sebelum keluar selepas guruh terakhir kedengaran?','30 minit',['1 minit','5 saat','Tidak perlu menunggu'],'Peraturan 30-30.','Tunggu sekurang-kurangnya <mark>30 minit</mark> selepas <mark>guruh terakhir</mark> kerana kilat masih boleh berlaku.'],
+  ['Semasa berlindung di dalam kereta ketika kilat, apakah yang patut dilakukan?','Menutup tingkap dan tidak menyentuh bahagian logam kereta',['Membuka tingkap untuk udara segar','Keluar dan berdiri di sebelah kereta','Memegang pintu logam kereta'],'Cas mengalir di permukaan luar logam.','<mark>Tutup tingkap</mark> dan <mark>jangan sentuh logam</mark> kerana cas mengalir di permukaan logam.'],
+  ['Mengapakah menunggang motosikal tidak selamat ketika ribut petir?','Penunggang terdedah di kawasan terbuka tanpa perlindungan badan logam tertutup',['Motosikal terlalu laju','Tayar motosikal tidak boleh basah','Motosikal tiada lampu'],'Bezakan dengan kereta tertutup.','Motosikal dan basikal <mark>tidak melindungi</mark> penunggang; mereka <mark>terdedah</mark> kepada sambaran.'],
+  ['Sebuah rumah dua tingkat di kawasan tanah tinggi sering disambar kilat. Cadangkan langkah yang terbaik.','Memasang penangkap kilat yang disambungkan ke plat kuprum di dalam tanah',['Mengecat rumah dengan warna gelap','Menanam pokok di sekeliling rumah','Memasang lebih banyak lampu'],'Sistem pembumian lengkap.','Pasang <mark>penangkap kilat + jalur kuprum + plat bumi</mark> untuk <mark>menyalurkan cas</mark> dengan selamat.'],
+  ['Wajarkan tindakan guru menghentikan latihan bola sepak apabila kilat mula kelihatan.','Murid di padang terbuka berisiko tinggi disambar kilat, jadi menghentikan latihan melindungi nyawa mereka',['Supaya padang tidak rosak','Supaya bola tidak basah','Supaya guru boleh berehat'],'Padang lapang = berbahaya.','Padang <mark>terbuka</mark> menjadikan murid <mark>sasaran kilat</mark>; keselamatan nyawa diutamakan.']
+ ]},
+ {id:'m5',nama:'MODUL 5: DAYA & HUKUM NEWTON',desc:'Daya, unit S.I. & Hukum Newton Ketiga',q:[
+  ['Apakah maksud daya?','Tolakan atau tarikan ke atas sesuatu objek',['Jumlah jirim dalam objek','Ruang yang diisi oleh objek','Tenaga yang tersimpan dalam makanan'],'Daya = tolak / tarik.','<mark>Daya</mark> ialah <mark>tolakan atau tarikan</mark> ke atas objek.'],
+  ['Apakah unit S.I. bagi daya?','Newton (N)',['Kilogram (kg)','Joule (J)','Meter (m)'],'Dinamakan sempena Isaac Newton.','Unit S.I. daya ialah <mark>newton (N)</mark>.'],
+  ['Apakah alat yang digunakan untuk mengukur daya?','Neraca spring',['Pembaris meter','Termometer','Jam randik'],'Spring memanjang apabila ditarik.','<mark>Neraca spring</mark> mengukur <mark>daya</mark> dalam newton.'],
+  ['Antara berikut, yang manakah BUKAN kesan daya?','Mengubah jisim objek',['Mengubah bentuk objek','Mengubah arah gerakan objek','Mengubah laju objek'],'Jisim ialah kuantiti jirim, tidak berubah apabila ditolak.','Daya boleh mengubah <mark>bentuk, arah, laju dan kedudukan</mark>, tetapi <mark>tidak mengubah jisim</mark>.'],
+  ['Nyatakan Hukum Newton Ketiga.','Bagi setiap daya tindakan, terdapat daya tindak balas yang sama magnitud tetapi bertentangan arah',['Objek akan kekal pegun selama-lamanya','Daya sama dengan jisim darab isi padu','Objek berat jatuh lebih cepat'],'Tindakan = tindak balas.','Hukum Newton Ketiga: <mark>tindakan dan tindak balas</mark> adalah <mark>sama magnitud</mark>, <mark>bertentangan arah</mark>.'],
+  ['Terangkan situasi Daniel menolak troli menggunakan Hukum Newton Ketiga.','Daniel mengenakan daya tolakan ke atas troli, dan troli mengenakan daya yang sama magnitud tetapi bertentangan arah ke atas tangan Daniel',['Troli bergerak kerana jisimnya kecil','Daniel tidak mengenakan sebarang daya','Troli menarik Daniel ke hadapan'],'Siapa menolak siapa? Kedua-duanya!','<mark>Tindakan</mark>: tangan menolak troli. <mark>Tindak balas</mark>: troli menolak tangan dengan daya <mark>sama, bertentangan arah</mark>.',CF],
+  ['Bagaimanakah roket dapat bergerak ke atas?','Gas ekzos ditolak ke bawah dan gas menolak roket ke atas',['Roket ditarik oleh bulan','Roket lebih ringan daripada udara','Sayap roket mengepak'],'Contoh klasik Hukum Newton Ketiga.','Roket <mark>menolak gas ke bawah</mark> (tindakan) → gas <mark>menolak roket ke atas</mark> (tindak balas).'],
+  ['Mengapakah perenang bergerak ke hadapan apabila tangannya menolak air ke belakang?','Air menolak badan perenang ke hadapan dengan daya yang sama magnitud',['Air menarik perenang ke bawah','Perenang lebih ringan daripada air','Arus air sentiasa ke hadapan'],'Tindakan ke belakang, tindak balas ke…','Tolak air <mark>ke belakang</mark> → air tolak badan <mark>ke hadapan</mark> (Hukum Newton Ketiga).'],
+  ['Mengapakah troli Daniel bergerak dengan laju seragam?','Daya tolakan sama dengan daya geseran, jadi daya paduan ialah sifar',['Daya tolakan lebih besar daripada geseran','Tiada daya geseran','Jisim troli sangat kecil'],'Bandingkan 80 N dengan 80 N.','Daya seimbang (<mark>80 N = 80 N</mark>) → <mark>daya paduan sifar</mark> → <mark>laju seragam</mark>.',CF],
+  ['Berapakah daya paduan ke atas troli Daniel?','0 N',['80 N','160 N','40 N'],'Daya paduan = tolakan − geseran.','<mark>80 N − 80 N = 0 N</mark>.',CF],
+  ['Jika Daniel menambah daya tolakan kepada 100 N, apakah yang berlaku kepada troli?','Troli memecut kerana terdapat daya paduan 20 N ke hadapan',['Troli berhenti','Troli bergerak ke belakang','Troli kekal pada laju seragam'],'100 N − 80 N = ?','Daya paduan <mark>20 N</mark> → troli <mark>memecut</mark> (laju bertambah).',CF],
+  ['Berapakah berat troli Daniel? (g = 10 N/kg)','400 N',['40 N','4 N','4000 N'],'Berat = jisim × g.','Berat = <mark>40 kg × 10 N/kg = 400 N</mark>.',CF],
+  ['Apakah perbezaan antara jisim dengan berat?','Jisim ialah kuantiti jirim (kg), berat ialah daya graviti ke atas objek (N)',['Jisim dan berat adalah sama','Jisim diukur dalam N, berat dalam kg','Berat tidak berubah di bulan'],'Satu kuantiti jirim, satu lagi daya.','<mark>Jisim</mark> = kuantiti jirim (<mark>kg</mark>). <mark>Berat</mark> = daya graviti (<mark>N</mark>), berubah mengikut tempat.'],
+  ['Apakah daya normal?','Daya tindak balas yang dikenakan oleh permukaan ke atas objek yang berada di atasnya',['Daya tarikan magnet','Daya yang melawan gerakan','Daya tarikan graviti bumi'],'Permukaan "menolak balik" objek.','<mark>Daya normal</mark> = daya <mark>tindak balas permukaan</mark>, berserenjang dengan permukaan.'],
+  ['Ke arah manakah daya graviti bumi bertindak?','Ke arah pusat bumi',['Ke arah matahari','Ke atas','Ke arah utara'],'Objek jatuh ke…','Daya graviti sentiasa bertindak <mark>ke arah pusat bumi</mark>.'],
+  ['Apakah daya yang menyebabkan bot dapat terapung di atas air?','Daya apungan',['Daya geseran','Daya magnet','Daya elastik'],'Daya air menolak ke atas.','<mark>Daya apungan</mark> bertindak <mark>ke atas</mark> dan mengimbangi berat bot.'],
+  ['Apakah daya yang terhasil apabila spring diregangkan lalu kembali ke bentuk asal?','Daya elastik',['Daya graviti','Daya geseran','Daya apungan'],'Bahan anjal.','<mark>Daya elastik</mark> mengembalikan bahan anjal ke <mark>bentuk asal</mark>.'],
+  ['Mengapakah meriam terundur ke belakang apabila peluru ditembak?','Meriam menolak peluru ke hadapan, peluru menolak meriam ke belakang dengan daya sama magnitud',['Meriam terlalu ringan','Angin menolak meriam','Peluru menarik meriam'],'Hukum Newton Ketiga.','<mark>Tindakan</mark>: tolak peluru ke depan. <mark>Tindak balas</mark>: meriam <mark>terundur</mark>.'],
+  ['Apakah yang berlaku kepada sebuah bot kecil apabila seseorang melompat darinya ke jeti?','Bot bergerak ke belakang menjauhi jeti',['Bot bergerak ke arah jeti','Bot tenggelam','Bot kekal pegun'],'Kaki menolak bot ke…','Kaki <mark>menolak bot ke belakang</mark> → badan bergerak ke hadapan, <mark>bot ke belakang</mark>.'],
+  ['Apabila kaki menendang bola, apakah pasangan daya tindakan dan tindak balas?','Kaki mengenakan daya ke atas bola, bola mengenakan daya yang sama ke atas kaki',['Bola menarik kaki ke hadapan','Hanya kaki mengenakan daya','Rumput menolak bola ke atas'],'Kenapa kaki terasa sakit jika menendang kuat?','<mark>Kaki → bola</mark> (tindakan), <mark>bola → kaki</mark> (tindak balas), sama magnitud, bertentangan arah.']
+ ]},
+ {id:'m6',nama:'MODUL 6: DAYA GESERAN',desc:'Geseran & cara memudahkan tolakan',q:[
+  ['Apakah maksud daya geseran?','Daya yang menentang gerakan antara dua permukaan yang bersentuhan',['Daya yang menarik objek ke pusat bumi','Daya yang menolak objek ke atas di dalam air','Daya tarikan antara magnet'],'Geseran melawan pergerakan.','<mark>Daya geseran</mark> = daya yang <mark>menentang gerakan</mark> antara dua permukaan.'],
+  ['Ke arah manakah daya geseran bertindak ke atas troli Daniel?','Bertentangan dengan arah gerakan troli',['Sama dengan arah gerakan troli','Ke atas','Ke bawah'],'Geseran sentiasa melawan.','Geseran bertindak <mark>bertentangan arah gerakan</mark>.',CF],
+  ['Bezakan daya tolakan dengan daya geseran dalam situasi Daniel.','Daya tolakan dikenakan oleh Daniel searah gerakan, manakala daya geseran terhasil antara roda dan jalan, bertentangan arah gerakan',['Kedua-dua daya searah','Daya geseran dikenakan oleh Daniel','Daya tolakan sentiasa lebih kecil'],'Siapa yang menghasilkan? Ke mana arahnya?','<mark>Tolakan</mark>: oleh Daniel, <mark>searah gerakan</mark>. <mark>Geseran</mark>: antara permukaan, <mark>bertentangan arah</mark>. Magnitud kedua-duanya sama (80 N).',CF],
+  ['Apakah faktor yang menyebabkan geseran lebih tinggi?','Permukaan yang lebih kasar',['Permukaan yang lebih licin','Objek yang lebih ringan','Penggunaan roda'],'Bandingkan jalan berbatu dengan lantai jubin.','<mark>Permukaan kasar</mark> → <mark>geseran tinggi</mark>.'],
+  ['Mengapakah kotak yang lebih berat lebih sukar ditolak?','Objek yang lebih berat menghasilkan daya geseran yang lebih besar',['Objek berat tiada geseran','Objek berat lebih licin','Objek berat lebih kecil saiznya'],'Berat menekan permukaan dengan lebih kuat.','<mark>Berat bertambah</mark> → <mark>geseran bertambah</mark> → perlukan daya lebih besar.'],
+  ['Cadangkan satu cara untuk memudahkan seorang murid menolak kotak berat.','Meletakkan kotak di atas troli beroda',['Menolak kotak di atas lantai berpasir','Menambah buku ke dalam kotak','Menolak kotak sambil menekannya ke bawah'],'Roda mengurangkan sentuhan permukaan.','<mark>Roda</mark> mengurangkan geseran → kotak <mark>lebih mudah ditolak</mark>.'],
+  ['Bagaimanakah minyak pelincir memudahkan objek ditolak?','Mengurangkan geseran antara dua permukaan',['Menambah geseran','Menambah berat objek','Menjadikan permukaan lebih kasar'],'Licin = …','<mark>Pelincir</mark> (minyak, gris, bedak) <mark>mengurangkan geseran</mark>.'],
+  ['Mengapakah mengeluarkan sebahagian barang dari kotak memudahkan ia ditolak?','Jisim kotak berkurang, jadi daya geseran berkurang',['Kotak menjadi lebih besar','Lantai menjadi kasar','Kotak menjadi bercas'],'Ringan = …','<mark>Kurangkan jisim</mark> → <mark>kurangkan geseran</mark>.'],
+  ['Bagaimanakah orang dahulu memindahkan batu besar dengan mudah?','Meletakkan batang kayu bulat di bawah batu sebagai penggelek',['Menyiram pasir ke bawah batu','Menambah batu lain di atasnya','Menolak batu ke atas bukit'],'Bergolek lebih mudah daripada menggelongsor.','<mark>Penggelek</mark> (batang silinder) mengurangkan geseran.'],
+  ['Kotak lebih mudah ditolak di atas permukaan yang…','Licin',['Kasar','Berpasir','Berlumpur'],'Permukaan yang kurang geseran.','Permukaan <mark>licin</mark> → <mark>geseran rendah</mark>.'],
+  ['Apakah kebaikan daya geseran dalam kehidupan harian?','Membolehkan kita berjalan tanpa tergelincir',['Menyebabkan tayar cepat haus','Menghasilkan haba yang membazir','Melambatkan kenderaan'],'Tanpa geseran, lantai seperti ais.','Geseran membolehkan kita <mark>berjalan</mark>, <mark>memegang</mark> objek dan kereta <mark>membrek</mark>.'],
+  ['Apakah keburukan daya geseran?','Menyebabkan tapak kasut dan tayar menjadi haus',['Membolehkan kita menulis','Membolehkan kereta berhenti','Membolehkan kita memegang pensel'],'Haus dan haba.','Keburukan: <mark>haus</mark> pada permukaan dan <mark>pembaziran tenaga sebagai haba</mark>.'],
+  ['Mengapakah tayar kereta mempunyai bunga tayar?','Meningkatkan geseran untuk cengkaman yang baik di jalan',['Mengurangkan geseran supaya laju','Menjadikan tayar lebih ringan','Untuk hiasan sahaja'],'Lebih cengkaman = lebih selamat.','<mark>Bunga tayar</mark> <mark>meningkatkan geseran</mark> dan mengalirkan air supaya tidak tergelincir.'],
+  ['Mengapakah tapak tangan menjadi panas apabila digosok?','Geseran menghasilkan tenaga haba',['Darah mengalir lebih perlahan','Kulit menyerap cahaya','Tangan menjadi bercas'],'Tenaga gerakan bertukar kepada…','<mark>Geseran</mark> menukar tenaga kinetik kepada <mark>tenaga haba</mark>.'],
+  ['Apakah fungsi galas bebola pada roda basikal?','Mengurangkan geseran supaya roda berputar dengan lancar',['Menambah geseran supaya basikal berhenti','Menambah berat basikal','Menyimpan angin'],'Bebola kecil bergolek.','<mark>Galas bebola</mark> <mark>mengurangkan geseran</mark> antara bahagian yang berputar.'],
+  ['Mengapakah kereta lumba berbentuk larus?','Mengurangkan rintangan udara',['Menambah rintangan udara','Supaya lebih berat','Supaya tayar lebih besar'],'Rintangan udara ialah sejenis geseran.','Bentuk <mark>larus</mark> (aerodinamik) <mark>mengurangkan rintangan udara</mark>.'],
+  ['Mengapakah kasut pelari mempunyai paku di bawahnya?','Menambah geseran supaya tidak tergelincir',['Mengurangkan geseran supaya lebih laju','Supaya kasut lebih ringan','Supaya kasut tahan air'],'Cengkaman pada trek.','<mark>Kasut berpaku</mark> <mark>meningkatkan geseran</mark> untuk cengkaman.'],
+  ['Mengapakah kita mudah tergelincir di atas lantai yang basah bersabun?','Sabun mengurangkan geseran antara kaki dan lantai',['Sabun menambah geseran','Lantai menjadi kasar','Kaki menjadi lebih berat'],'Sabun bertindak sebagai pelincir.','Sabun <mark>mengurangkan geseran</mark> → mudah <mark>tergelincir</mark>.'],
+  ['Jika Daniel berhenti menolak troli, apakah yang akan berlaku?','Troli akan semakin perlahan dan berhenti kerana daya geseran',['Troli akan bergerak semakin laju','Troli akan bergerak selama-lamanya','Troli akan bergerak ke atas'],'Hanya geseran yang masih bertindak.','Tanpa tolakan, <mark>geseran</mark> menyebabkan troli <mark>nyahpecut</mark> lalu <mark>berhenti</mark>.',CF],
+  ['Antara berikut, situasi manakah memerlukan geseran yang tinggi?','Brek basikal mencengkam roda',['Gelongsor di taman permainan','Engsel pintu berputar','Enjin kereta bergerak'],'Bila kita mahu berhenti?','<mark>Brek</mark> memerlukan <mark>geseran tinggi</mark> untuk menghentikan roda.']
+ ]},
+ {id:'m7',nama:'MODUL 7: MIKROORGANISMA & PENYAKIT',desc:'Bakteria, virus, kolera & HFMD',q:[
+  ['Antara berikut, yang manakah penyakit yang disebabkan oleh bakteria?','Tuberkulosis (tibi)',['Denggi','Influenza','Cacar air'],'Penyakit paru-paru yang dirawat dengan antibiotik.','Penyakit <mark>bakteria</mark>: <mark>tibi</mark>, <mark>kolera</mark>, <mark>tifoid</mark>.'],
+  ['Antara berikut, yang manakah penyakit yang disebabkan oleh virus?','Denggi',['Kolera','Tifoid','Kurap'],'Dibawa oleh nyamuk Aedes.','Penyakit <mark>virus</mark>: <mark>denggi</mark>, <mark>influenza</mark>, <mark>HFMD</mark>, <mark>COVID-19</mark>, cacar air.'],
+  ['Kurap dan panau disebabkan oleh…','Kulat',['Virus','Protozoa','Alga'],'Mikroorganisma yang suka tempat lembap.','<mark>Kurap</mark> dan <mark>panau</mark> disebabkan oleh <mark>kulat</mark>.'],
+  ['Malaria disebabkan oleh…','Protozoa',['Kulat','Virus','Bakteria'],'Dibawa oleh nyamuk Anopheles.','<mark>Malaria</mark> disebabkan oleh <mark>protozoa</mark> (Plasmodium) dan dibawa oleh nyamuk Anopheles.'],
+  ['Bagaimanakah kolera biasanya merebak?','Melalui makanan dan air yang tercemar',['Melalui gigitan nyamuk','Melalui udara apabila bersin','Melalui pemindahan darah'],'Penyakit bawaan air.','<mark>Kolera</mark> merebak melalui <mark>makanan dan air yang tercemar</mark> oleh bakteria.'],
+  ['Kampung Aisyah dilanda wabak kolera. Apakah langkah utama untuk mengelakkan dirinya dijangkiti?','Minum air yang telah dimasak sehingga mendidih',['Minum air terus dari sungai','Makan makanan mentah','Tidak mencuci tangan'],'Haba membunuh bakteria.','<mark>Masak air</mark> sehingga <mark>mendidih</mark> untuk membunuh bakteria kolera.'],
+  ['Apakah langkah kebersihan diri bagi mengelakkan kolera?','Mencuci tangan dengan sabun sebelum makan dan selepas ke tandas',['Berkongsi pinggan dengan orang lain','Makan di tempat kotor','Membuang sampah ke dalam longkang'],'Tangan membawa kuman.','<mark>Cuci tangan dengan sabun</mark> <mark>sebelum makan</mark> dan <mark>selepas ke tandas</mark>.'],
+  ['Mengapakah makanan perlu sentiasa ditutup semasa wabak kolera?','Mengelakkan lalat hinggap dan mencemarkan makanan',['Supaya makanan cepat sejuk','Supaya makanan lebih sedap','Supaya makanan tidak kering'],'Lalat ialah vektor.','<mark>Tutup makanan</mark> supaya <mark>lalat</mark> tidak membawa bakteria ke makanan.'],
+  ['Antara berikut, yang manakah langkah yang sesuai semasa wabak kolera?','Mengelak makan di gerai yang tidak bersih',['Makan makanan laut mentah','Minum air paip tanpa dimasak','Membiarkan sampah bertimbun'],'Pilih tempat makan yang bersih.','Elak <mark>gerai kotor</mark> dan <mark>makanan mentah</mark> semasa wabak.'],
+  ['Apakah vektor yang boleh membawa bakteria kolera ke makanan?','Lalat rumah',['Nyamuk Aedes','Tikus','Lipas air'],'Serangga yang hinggap pada najis dan makanan.','<mark>Lalat rumah</mark> ialah vektor yang membawa kuman dari <mark>najis ke makanan</mark>.'],
+  ['Apakah maksud penyakit berjangkit?','Penyakit yang disebabkan oleh patogen dan boleh merebak dari satu individu kepada individu lain',['Penyakit yang diwarisi daripada ibu bapa','Penyakit akibat gaya hidup sahaja','Penyakit yang tidak boleh merebak'],'Patogen = mikroorganisma penyebab penyakit.','<mark>Penyakit berjangkit</mark> disebabkan <mark>patogen</mark> dan <mark>boleh merebak</mark>.'],
+  ['Antara berikut, yang manakah penyakit tidak berjangkit?','Penyakit jantung',['Kolera','Influenza','Kurap'],'Tidak disebabkan oleh kuman.','<mark>Penyakit tidak berjangkit</mark>: <mark>jantung</mark>, <mark>diabetes</mark>, darah tinggi, kanser.'],
+  ['Bezakan penyakit J dengan penyakit K.','J ialah penyakit tidak berjangkit dan tidak disebabkan mikroorganisma, manakala K ialah penyakit berjangkit yang disebabkan oleh kulat',['Kedua-duanya penyakit berjangkit','J disebabkan oleh virus, K disebabkan oleh bakteria','J boleh merebak melalui sentuhan, K tidak boleh'],'Sakit jantung lawan jangkitan kulat.','<mark>J (jantung)</mark>: <mark>tidak berjangkit</mark>, akibat gaya hidup. <mark>K (kulat)</mark>: <mark>berjangkit</mark>, merebak melalui sentuhan atau berkongsi barang.',CJ],
+  ['Apakah punca utama penyakit J yang dihidapi Encik Lim?','Gaya hidup tidak sihat seperti makan makanan berlemak dan merokok',['Gigitan nyamuk','Minum air tercemar','Sentuhan dengan pesakit lain'],'Penyakit tidak berjangkit.','Penyakit jantung berpunca daripada <mark>gaya hidup tidak sihat</mark>: lemak tinggi, <mark>merokok</mark>, kurang senaman.',CJ],
+  ['HFMD (penyakit tangan, kaki dan mulut) disebabkan oleh…','Virus',['Bakteria','Kulat','Protozoa'],'Enterovirus.','<mark>HFMD</mark> disebabkan oleh <mark>virus</mark> (enterovirus seperti Coxsackie).'],
+  ['Apakah tanda-tanda HFMD?','Demam, ulser di mulut dan ruam pada tangan dan kaki',['Batuk berdarah dan sesak nafas','Cirit-birit teruk dan muntah','Gatal di kepala sahaja'],'Lihat nama penyakit: tangan, kaki, mulut.','Tanda HFMD: <mark>demam</mark>, <mark>ulser mulut</mark>, <mark>ruam tangan dan kaki</mark>.'],
+  ['Sebuah tadika menampal notis saringan kesihatan HFMD di pintu masuk. Wajarkan tindakan ini.','Mengesan awal kanak-kanak bergejala supaya virus tidak merebak kepada kanak-kanak lain',['Supaya ibu bapa membayar yuran','Supaya tadika kelihatan cantik','Supaya kanak-kanak belajar membaca'],'HFMD sangat mudah berjangkit dalam kalangan kanak-kanak.','Saringan <mark>mengesan awal</mark> dan <mark>mengasingkan</mark> kanak-kanak bergejala → <mark>mencegah penularan</mark> HFMD.'],
+  ['Bagaimanakah HFMD merebak?','Melalui sentuhan, air liur, cecair lepuh dan najis pesakit',['Melalui gigitan nyamuk','Melalui makanan berlemak','Melalui pancaran cahaya matahari'],'Kanak-kanak suka berkongsi mainan.','HFMD merebak melalui <mark>sentuhan</mark>, <mark>air liur</mark>, <mark>cecair lepuh</mark> dan <mark>najis</mark>.'],
+  ['Apakah fungsi vaksin?','Merangsang badan menghasilkan antibodi supaya kebal terhadap penyakit tertentu',['Membunuh semua bakteria dalam badan','Menggantikan darah','Membekalkan tenaga'],'Imuniti buatan.','<mark>Vaksin</mark> merangsang <mark>penghasilan antibodi</mark> → <mark>keimunan</mark>.'],
+  ['Antibiotik hanya berkesan untuk merawat jangkitan…','Bakteria',['Virus','Penyakit jantung','Kecederaan tulang'],'Antibiotik tidak membunuh virus.','<mark>Antibiotik</mark> membunuh <mark>bakteria</mark> sahaja; tidak berkesan terhadap virus.']
+ ]},
+ {id:'m8',nama:'MODUL 8: KITAR AIR',desc:'Proses kitar air & peranan hidupan',q:[
+  ['Namakan proses R dalam rajah kitar air.','Penyejatan',['Kondensasi','Kerpasan','Transpirasi'],'Air laut bertukar menjadi wap.','Proses <mark>R</mark> ialah <mark>penyejatan</mark>: air di laut dan sungai bertukar menjadi wap air akibat haba matahari.',CW],
+  ['Apakah maksud penyejatan?','Proses air bertukar menjadi wap air apabila dipanaskan oleh matahari',['Proses wap air bertukar menjadi titisan air','Proses air jatuh sebagai hujan','Proses air meresap ke dalam tanah'],'Cecair → gas.','<mark>Penyejatan</mark>: <mark>air → wap air</mark> dengan haba matahari.'],
+  ['Apakah maksud kondensasi dalam kitar air?','Wap air menyejuk dan bertukar menjadi titisan air kecil yang membentuk awan',['Air bertukar menjadi wap','Air meresap ke dalam tanah','Air mengalir ke laut'],'Gas → cecair.','<mark>Kondensasi</mark>: <mark>wap air menyejuk</mark> → titisan air → <mark>awan</mark>.'],
+  ['Apakah contoh kerpasan?','Hujan, salji dan hujan batu',['Kabus dan wap','Sungai dan tasik','Peluh dan air kencing'],'Air yang jatuh dari awan.','<mark>Kerpasan</mark> = air jatuh dari awan sebagai <mark>hujan, salji, hujan batu</mark>.'],
+  ['Apakah maksud transpirasi?','Kehilangan air dalam bentuk wap air melalui stoma daun',['Penyerapan air oleh akar','Pembebasan oksigen oleh daun','Penyerapan cahaya oleh klorofil'],'Berlaku pada daun.','<mark>Transpirasi</mark> = kehilangan <mark>wap air</mark> melalui <mark>stoma daun</mark>.'],
+  ['Terangkan peranan tumbuhan dalam kitar air.','Tumbuhan menyerap air dari tanah dan membebaskan wap air ke atmosfera melalui transpirasi',['Tumbuhan menyerap semua wap air di udara','Tumbuhan menghasilkan hujan secara terus','Tumbuhan tidak terlibat dalam kitar air'],'Akar menyerap, daun membebaskan.','Tumbuhan <mark>menyerap air</mark> melalui akar dan <mark>membebaskan wap air</mark> melalui <mark>transpirasi</mark>.',CW],
+  ['Terangkan peranan haiwan dalam kitar air.','Haiwan membebaskan air ke persekitaran melalui respirasi, perpeluhan dan perkumuhan',['Haiwan menyerap wap air dari awan','Haiwan menghasilkan awan','Haiwan tidak terlibat dalam kitar air'],'Nafas, peluh, air kencing.','Haiwan membebaskan air melalui <mark>respirasi</mark> (nafas), <mark>perpeluhan</mark> dan <mark>perkumuhan</mark> (urin).',CW],
+  ['Apakah bahagian tumbuhan yang menyerap air dari tanah?','Akar',['Daun','Bunga','Buah'],'Bahagian di dalam tanah.','<mark>Akar</mark> menyerap air dan garam mineral dari tanah.'],
+  ['Apakah sumber tenaga utama yang menggerakkan kitar air?','Matahari',['Bulan','Angin','Bumi'],'Ia memanaskan permukaan air.','<mark>Tenaga haba matahari</mark> menyebabkan penyejatan dan menggerakkan kitar air.'],
+  ['Apakah yang berlaku kepada air hujan yang meresap ke dalam tanah?','Menjadi air bawah tanah',['Bertukar menjadi awan','Hilang terus','Menjadi wap air serta-merta'],'Air disimpan di bawah permukaan.','Air hujan yang <mark>meresap</mark> ke dalam tanah menjadi <mark>air bawah tanah</mark>.'],
+  ['Apakah kepentingan kitar air?','Membekalkan air bersih secara berterusan kepada hidupan',['Menambah garam di laut','Menyebabkan banjir setiap hari','Mengurangkan oksigen di udara'],'Air dikitar semula secara semula jadi.','Kitar air <mark>membekalkan air bersih</mark> secara <mark>berterusan</mark> dan mengekalkan keseimbangan alam.'],
+  ['Bagaimanakah penyahhutan mengganggu kitar air?','Kurang tumbuhan menyebabkan kurang transpirasi dan taburan hujan berkurang',['Menambah transpirasi','Menyebabkan lebih banyak awan','Tiada kesan kepada kitar air'],'Siapa yang membebaskan wap air?','<mark>Penyahhutan</mark> → <mark>kurang transpirasi</mark> → <mark>kurang hujan</mark> dan risiko hakisan tanah.'],
+  ['Apakah struktur pada daun yang membebaskan wap air?','Stoma',['Akar rambut','Kutikel','Xilem'],'Liang kecil di permukaan daun.','<mark>Stoma</mark> ialah liang kecil untuk pertukaran gas dan <mark>pembebasan wap air</mark>.'],
+  ['Apakah yang dibebaskan oleh haiwan semasa respirasi?','Karbon dioksida dan wap air',['Oksigen dan glukosa','Nitrogen sahaja','Kanji dan air'],'Hembus nafas pada cermin — berembun.','Respirasi membebaskan <mark>karbon dioksida</mark> dan <mark>wap air</mark>.'],
+  ['Antara berikut, yang manakah hasil perkumuhan yang mengandungi air?','Air kencing dan peluh',['Oksigen','Kanji','Klorofil'],'Bahan buangan badan.','<mark>Urin</mark> dan <mark>peluh</mark> mengandungi air yang kembali ke persekitaran.'],
+  ['Pada keadaan manakah kadar transpirasi paling tinggi?','Hari yang panas dan berangin',['Malam yang sejuk','Hari hujan lebat','Hari yang berkabus'],'Panas + angin = cepat kering.','<mark>Panas</mark> dan <mark>berangin</mark> meningkatkan kadar transpirasi.'],
+  ['Apakah urutan proses kitar air yang betul?','Penyejatan → kondensasi → kerpasan → air larian',['Kerpasan → penyejatan → air larian → kondensasi','Kondensasi → air larian → penyejatan → kerpasan','Air larian → kerpasan → kondensasi → penyejatan'],'Naik, jadi awan, turun, mengalir.','Urutan: <mark>penyejatan → kondensasi → kerpasan → air larian</mark>.'],
+  ['Mengapakah awan terbentuk di tempat yang tinggi?','Suhu di altitud tinggi rendah, maka wap air menyejuk dan terkondensasi',['Di tempat tinggi lebih panas','Angin menolak air ke atas','Awan ditarik oleh bulan'],'Semakin tinggi, semakin sejuk.','Di altitud tinggi, <mark>suhu rendah</mark> → wap air <mark>terkondensasi</mark> → <mark>awan</mark>.'],
+  ['Apakah kesan pencemaran sungai terhadap kitar air?','Mengurangkan bekalan air bersih untuk hidupan',['Menambah air bersih','Menambah transpirasi','Tiada kesan'],'Air tercemar tidak boleh digunakan.','Pencemaran <mark>mengurangkan sumber air bersih</mark> dan memudaratkan hidupan akuatik.'],
+  ['Cadangkan cara untuk mengatasi penggunaan air yang berlebihan.','Menggunakan sistem tadahan air hujan untuk menyiram tanaman',['Membiarkan paip terbuka','Mencuci kereta setiap hari','Mandi dengan tab mandi penuh setiap hari'],'Jimat dan guna semula air.','<mark>Tadahan air hujan</mark>, <mark>tutup paip</mark>, dan <mark>guna semula air</mark> menjimatkan bekalan air.']
+ ]},
+ {id:'m9',nama:'MODUL 9: KITAR OKSIGEN & KARBON',desc:'Fotosintesis, respirasi & gangguan kitar',q:[
+  ['Namakan proses Y.','Fotosintesis',['Respirasi','Pembakaran','Penguraian'],'Menyerap CO2 dan membebaskan O2.','Proses <mark>Y</mark> ialah <mark>fotosintesis</mark>: tumbuhan menyerap karbon dioksida dan membebaskan oksigen.',CX],
+  ['Namakan proses X.','Respirasi',['Fotosintesis','Transpirasi','Penyejatan'],'Menggunakan O2 dan membebaskan CO2.','Proses <mark>X</mark> ialah <mark>respirasi</mark>: menggunakan oksigen dan membebaskan karbon dioksida.',CX],
+  ['Nyatakan satu persamaan antara proses X dan proses Y.','Kedua-dua proses melibatkan pertukaran gas oksigen dan karbon dioksida',['Kedua-dua proses membebaskan oksigen','Kedua-dua proses hanya berlaku pada waktu malam','Kedua-dua proses memerlukan cahaya matahari'],'Gas apa yang terlibat dalam kedua-duanya?','<mark>Persamaan</mark>: kedua-duanya <mark>melibatkan oksigen dan karbon dioksida</mark> dan berlaku dalam tumbuhan.',CX],
+  ['Nyatakan perbezaan antara proses Y dan proses X dari segi gas yang digunakan.','Y menggunakan karbon dioksida, manakala X menggunakan oksigen',['Y menggunakan oksigen, X menggunakan karbon dioksida','Kedua-duanya menggunakan nitrogen','Kedua-duanya menggunakan wap air sahaja'],'Fotosintesis perlukan CO2.','<mark>Fotosintesis (Y)</mark> guna <mark>CO2</mark>, bebas O2. <mark>Respirasi (X)</mark> guna <mark>O2</mark>, bebas CO2.',CX],
+  ['Bezakan masa berlakunya proses Y dan proses X.','Y berlaku hanya apabila ada cahaya, manakala X berlaku sepanjang masa',['Y berlaku sepanjang masa, X hanya pada siang','Kedua-duanya hanya berlaku pada malam','Kedua-duanya hanya berlaku pada siang'],'Fotosintesis perlukan cahaya.','<mark>Fotosintesis</mark>: <mark>hanya ada cahaya</mark>. <mark>Respirasi</mark>: <mark>siang dan malam</mark>.',CX],
+  ['Apakah keperluan bagi fotosintesis?','Cahaya matahari, klorofil, karbon dioksida dan air',['Oksigen dan glukosa','Kegelapan dan oksigen','Garam dan pasir'],'Bahan mentah + tenaga.','Fotosintesis perlukan <mark>cahaya</mark>, <mark>klorofil</mark>, <mark>CO2</mark> dan <mark>air</mark>.'],
+  ['Apakah organisma yang menjalankan proses penguraian?','Bakteria dan kulat',['Harimau dan singa','Burung dan ikan','Pokok kelapa'],'Pengurai.','<mark>Pengurai</mark> (<mark>bakteria</mark> dan <mark>kulat</mark>) mengurai organisma mati dan membebaskan CO2.'],
+  ['Apakah gas yang digunakan dan dihasilkan semasa pembakaran?','Menggunakan oksigen dan menghasilkan karbon dioksida',['Menggunakan karbon dioksida dan menghasilkan oksigen','Menggunakan nitrogen dan menghasilkan hidrogen','Tiada gas terlibat'],'Api perlukan oksigen.','<mark>Pembakaran</mark> <mark>menggunakan O2</mark> dan <mark>membebaskan CO2</mark>.',CX],
+  ['Apakah kesan pembakaran bahan api fosil secara berlebihan?','Kandungan karbon dioksida di atmosfera meningkat dan menyebabkan pemanasan global',['Kandungan oksigen meningkat','Suhu bumi menurun','Lapisan ozon menebal'],'Kesan rumah hijau.','Lebih <mark>CO2</mark> → <mark>kesan rumah hijau</mark> → <mark>pemanasan global</mark>.'],
+  ['Bagaimanakah penyahhutan mengganggu kitar karbon?','Bilangan tumbuhan yang menyerap karbon dioksida berkurang',['Bilangan tumbuhan bertambah','Oksigen di udara bertambah','Karbon dioksida berkurang'],'Siapa yang menyerap CO2?','<mark>Penyahhutan</mark> → <mark>kurang fotosintesis</mark> → <mark>CO2 terkumpul</mark> di atmosfera.'],
+  ['Cadangkan satu cara untuk mengatasi gangguan kitar nutrien akibat penyahhutan.','Menjalankan penanaman semula pokok (penghutanan semula)',['Menebang lebih banyak pokok','Membakar hutan untuk pertanian','Membina lebih banyak kilang'],'Gantikan pokok yang ditebang.','<mark>Penanaman semula</mark> pokok meningkatkan <mark>penyerapan CO2</mark> dan pembebasan O2.'],
+  ['Cadangkan cara mengurangkan penggunaan bahan api fosil untuk menjana elektrik.','Menggunakan tenaga boleh diperbaharui seperti tenaga solar',['Membakar lebih banyak arang batu','Menggunakan lebih banyak diesel','Membiarkan lampu menyala sepanjang hari'],'Sumber tenaga yang tidak menghasilkan CO2.','<mark>Tenaga solar</mark>, angin dan hidro <mark>tidak membebaskan CO2</mark>.'],
+  ['Bagaimanakah amalan 3R membantu mengatasi gangguan kitar nutrien?','Mengurangkan pembakaran sampah dan penggunaan sumber alam',['Menambah sampah di tapak pelupusan','Menambah pembakaran terbuka','Menambah penebangan pokok'],'Kurangkan, guna semula, kitar semula.','Amalan <mark>3R</mark> <mark>mengurangkan sampah dibakar</mark> dan <mark>menjimatkan sumber</mark>.'],
+  ['Antara berikut, yang manakah tindakan yang membantu mengekalkan keseimbangan kitar karbon?','Mengelakkan pembakaran terbuka',['Membakar sampah di belakang rumah','Membuka hutan secara besar-besaran','Menggunakan kenderaan persendirian setiap masa'],'Pembakaran membebaskan CO2.','<mark>Elak pembakaran terbuka</mark> → kurangkan pembebasan <mark>CO2</mark> dan jerebu.'],
+  ['Pekerja sebuah syarikat digalakkan menaiki LRT atau berkongsi kereta ke tempat kerja. Wajarkan cadangan ini.','Bilangan kenderaan di jalan berkurang, jadi pembakaran bahan api dan pembebasan karbon dioksida berkurang',['Supaya jalan raya lebih sesak','Supaya lebih banyak petrol digunakan','Supaya mereka sampai lewat'],'Kurang kenderaan = kurang ekzos.','<mark>Kurang kenderaan</mark> → <mark>kurang pembakaran bahan api</mark> → <mark>kurang CO2</mark> → kitar karbon lebih <mark>seimbang</mark>.'],
+  ['Antara pengangkutan berikut, yang manakah paling mesra alam?','Basikal',['Kereta berenjin besar','Lori diesel','Motosikal lama berasap'],'Tiada pembakaran bahan api.','<mark>Basikal</mark> tidak membakar bahan api → <mark>tiada CO2</mark>.'],
+  ['Apakah maksud kitar nutrien?','Pengitaran semula bahan seperti karbon, oksigen dan air antara hidupan dengan persekitaran',['Proses makan makanan berkhasiat','Proses membuang sampah','Proses menghasilkan baja kimia'],'Nutrien digunakan semula secara berterusan.','<mark>Kitar nutrien</mark> = bahan seperti <mark>karbon, oksigen, air</mark> <mark>dikitar semula</mark> dalam ekosistem.'],
+  ['Apakah gas rumah hijau utama yang dibebaskan oleh kenderaan?','Karbon dioksida',['Oksigen','Nitrogen','Helium'],'Hasil pembakaran.','<mark>Karbon dioksida</mark> ialah <mark>gas rumah hijau</mark> utama.'],
+  ['Apakah yang berlaku kepada tumbuhan dan haiwan yang mati?','Diurai oleh pengurai dan membebaskan karbon dioksida serta nutrien ke dalam tanah',['Kekal selama-lamanya','Bertukar menjadi oksigen','Bertukar menjadi batu serta-merta'],'Pokok mati → penguraian.','Organisma mati <mark>diurai</mark> → <mark>CO2</mark> ke udara dan <mark>nutrien</mark> ke tanah.',CX],
+  ['Apakah kesan pemanasan global?','Ais di kutub mencair dan aras laut meningkat',['Suhu bumi menjadi semakin sejuk','Lapisan ais bertambah','Hujan tidak akan turun langsung'],'Bumi semakin panas.','<mark>Pemanasan global</mark> → <mark>ais kutub mencair</mark> → <mark>aras laut naik</mark>, cuaca ekstrem.']
+ ]},
+ {id:'m10',nama:'MODUL 10: SISTEM PENCERNAAN',desc:'Pencernaan, usus & pemakanan',q:[
+  ['Apakah maksud pencernaan makanan?','Proses memecahkan molekul makanan yang besar dan kompleks kepada molekul kecil dan ringkas yang larut dan boleh diserap',['Proses mengunyah makanan sahaja','Proses membuang najis','Proses menghasilkan tenaga di dalam sel'],'Besar → kecil, kompleks → ringkas.','<mark>Pencernaan</mark> = memecahkan <mark>molekul besar dan kompleks</mark> kepada <mark>molekul kecil, ringkas, larut</mark> yang boleh diserap.'],
+  ['Di manakah pencernaan makanan bermula?','Mulut',['Perut','Usus kecil','Usus besar'],'Gigi dan air liur.','Pencernaan bermula di <mark>mulut</mark> dengan gigi dan <mark>air liur</mark> (amilase).'],
+  ['Apakah fungsi utama usus kecil?','Melengkapkan pencernaan dan menyerap makanan tercerna ke dalam darah',['Menyerap semula air sahaja','Menyimpan najis','Menghasilkan air liur'],'Organ terpanjang dalam salur pencernaan.','<mark>Usus kecil</mark>: <mark>pencernaan lengkap</mark> + <mark>penyerapan</mark> makanan tercerna.'],
+  ['Apakah fungsi utama usus besar?','Menyerap semula air dan garam mineral daripada sisa makanan',['Mencerna protein','Menghasilkan hempedu','Mengunyah makanan'],'Sisa menjadi lebih pepejal di sini.','<mark>Usus besar</mark> <mark>menyerap semula air</mark> dan garam mineral, membentuk najis.'],
+  ['Nyatakan satu persamaan antara usus besar dan usus kecil.','Kedua-duanya berbentuk tiub dalam salur pencernaan dan menyerap bahan ke dalam badan',['Kedua-duanya menghasilkan asid hidroklorik','Kedua-duanya terletak di dalam mulut','Kedua-duanya menyimpan najis'],'Kedua-duanya menyerap sesuatu.','<mark>Persamaan</mark>: kedua-duanya <mark>tiub dalam salur pencernaan</mark> dan <mark>terlibat dalam penyerapan</mark>.'],
+  ['Nyatakan perbezaan antara usus kecil dan usus besar.','Usus kecil lebih panjang dan menyerap makanan tercerna, usus besar lebih pendek dan lebar serta menyerap semula air',['Usus besar lebih panjang daripada usus kecil','Usus kecil menyerap semula air sahaja','Kedua-duanya sama panjang'],'Usus kecil ≈ 6 m; usus besar ≈ 1.5 m.','<mark>Usus kecil</mark>: panjang, sempit, ada <mark>vilus</mark>, serap makanan. <mark>Usus besar</mark>: pendek, lebar, <mark>serap air</mark>.'],
+  ['Apakah fungsi vilus dalam usus kecil?','Menambah luas permukaan untuk penyerapan makanan',['Menghasilkan enzim pepsin','Menyimpan lemak','Menolak najis keluar'],'Struktur seperti jari.','<mark>Vilus</mark> <mark>menambah luas permukaan</mark> → penyerapan lebih cekap.'],
+  ['Puan Salmah sering makan makanan berlemak dan kurang sayur. Dia berisiko mendapat sembelit dan kanser kolon. Apakah punca utama?','Kurang pengambilan serat',['Terlalu banyak minum air','Terlalu banyak bersenam','Makan terlalu banyak buah'],'Serat membantu pergerakan najis.','<mark>Kurang serat</mark> → najis keras → <mark>sembelit</mark> → risiko <mark>kanser usus</mark>.'],
+  ['Cadangkan satu cara terbaik untuk Puan Salmah mengurangkan risiko kanser usus dan terangkan.','Makan lebih banyak sayur dan buah kerana serat merangsang peristalsis dan memudahkan penyahtinjaan',['Makan lebih banyak makanan bergoreng','Mengurangkan minum air','Tidur selepas makan'],'Sumber serat + fungsinya.','<mark>Serat</mark> (sayur, buah, bijirin penuh) <mark>merangsang peristalsis</mark> → najis mudah dikeluarkan → <mark>kurang risiko kanser</mark>.'],
+  ['Mengapakah senaman membantu kesihatan sistem pencernaan?','Senaman membantu pergerakan usus dan mengelakkan sembelit',['Senaman menghentikan pencernaan','Senaman menambah lemak','Senaman menyebabkan kanser'],'Badan aktif = usus aktif.','<mark>Senaman berkala</mark> <mark>merangsang pergerakan usus</mark> dan mengawal berat badan.'],
+  ['Mengapakah kita perlu minum air yang secukupnya setiap hari?','Melembutkan najis dan mengelakkan sembelit',['Supaya badan menyimpan lemak','Supaya perut cepat lapar','Supaya usus berhenti bergerak'],'Usus besar menyerap air.','Air yang cukup (<mark>6–8 gelas</mark>) <mark>melembutkan najis</mark> dan mencegah sembelit.'],
+  ['Mengapakah pengambilan makanan berlemak tinggi perlu dikurangkan?','Meningkatkan risiko obesiti, penyakit jantung dan kanser usus',['Menambah serat dalam badan','Menguatkan tulang','Membekalkan vitamin C'],'Gaya hidup tidak sihat.','<mark>Lemak berlebihan</mark> → <mark>obesiti</mark>, <mark>penyakit jantung</mark>, kanser usus.'],
+  ['Seorang vegetarian tidak makan daging tetapi masih minum susu dan makan keju. Wajarkan tindakannya.','Susu dan keju membekalkan protein dan kalsium yang diperlukan untuk pertumbuhan serta tulang dan gigi yang kuat',['Susu dan keju tidak berkhasiat','Supaya dia cepat gemuk','Kerana sayur mengandungi terlalu banyak protein'],'Protein & kalsium.','<mark>Susu dan keju</mark> membekalkan <mark>protein</mark> dan <mark>kalsium</mark> yang mungkin kurang daripada sayur sahaja → <mark>gizi seimbang</mark>.'],
+  ['Apakah fungsi kalsium kepada badan?','Menguatkan tulang dan gigi',['Membekalkan tenaga','Mencegah skurvi','Membantu penglihatan'],'Banyak dalam susu.','<mark>Kalsium</mark> <mark>menguatkan tulang dan gigi</mark>; kekurangannya menyebabkan riket.'],
+  ['Apakah fungsi protein kepada badan?','Untuk pertumbuhan dan membaiki sel serta tisu yang rosak',['Membekalkan serat','Menyerap air','Menghasilkan cahaya'],'Bahan binaan badan.','<mark>Protein</mark> diperlukan untuk <mark>pertumbuhan</mark> dan <mark>membaiki tisu</mark>.'],
+  ['Dalam model sistem pencernaan, penyedut minuman paling sesuai mewakili…','Esofagus',['Perut','Hati','Pankreas'],'Tiub panjang dari mulut ke perut.','<mark>Penyedut minuman</mark> berbentuk tiub → mewakili <mark>esofagus</mark>.'],
+  ['Dalam model sistem pencernaan, belon paling sesuai mewakili…','Perut',['Esofagus','Rektum','Gigi'],'Organ seperti kantung yang boleh mengembang.','<mark>Belon</mark> boleh mengembang → mewakili <mark>perut</mark>.'],
+  ['Dalam model sistem pencernaan, plastisin yang digulung panjang dan berlingkar paling sesuai mewakili…','Usus kecil dan usus besar',['Mulut','Esofagus','Perut'],'Tiub panjang yang berlipat.','<mark>Plastisin berlingkar</mark> mewakili <mark>usus kecil</mark> (berlingkar) dan <mark>usus besar</mark>.'],
+  ['Apakah urutan laluan makanan dalam salur pencernaan yang betul?','Mulut → esofagus → perut → usus kecil → usus besar → rektum → dubur',['Mulut → perut → esofagus → usus besar → usus kecil → dubur','Esofagus → mulut → usus kecil → perut → rektum → dubur','Mulut → usus kecil → perut → esofagus → dubur → rektum'],'Mulut dahulu, dubur terakhir.','Laluan: <mark>mulut → esofagus → perut → usus kecil → usus besar → rektum → dubur</mark>.'],
+  ['Apakah yang berlaku kepada makanan di dalam perut?','Protein dicerna oleh enzim dengan bantuan asid hidroklorik',['Air diserap semula','Makanan dikunyah oleh gigi','Najis disimpan'],'Persekitaran berasid.','Di <mark>perut</mark>, <mark>asid hidroklorik</mark> dan enzim <mark>pepsin</mark> mencerna <mark>protein</mark>.']
+ ]}
+];
+const MODULES=RAW.map(m=>({id:m.id,nama:m.nama,desc:m.desc,q:m.q.map(r=>({q:r[0],a:r[1],w:r[2],clue:r[3],note:r[4],ctx:r[5]||''}))}));
+const TOTAL_Q=MODULES.reduce((s,m)=>s+m.q.length,0);
+
+/* ========= DASHBOARD ========= */
+data.progress = data.progress || {};
+function renderHub(){
+  $('hubNama').textContent=data.user.nama;
+  $('hubKelas').textContent=data.user.kelas;
+  $('mods').innerHTML='';
+  MODULES.forEach(m=>{
+    const p=data.progress[m.id], ss=data.sessions[m.id];
+    const b=document.createElement('button'); b.className='mod';
+    const lbl = ss && ss.queue.length ? 'SAMBUNG ▶ baki '+ss.queue.length : (p?'✔ '+p.skor+'/'+m.q.length:'MULA ▶');
+    b.innerHTML=`<div><b>${m.nama}</b><small>${m.desc} · ${m.q.length} soalan</small></div>
+      <span class="st ${p||ss?'done':''}" ${ss?'style="border-color:var(--yellow);color:var(--yellow);box-shadow:0 0 8px var(--yellow)"':''}>${lbl}</span>`;
+    b.onclick=()=>startModule(m);
+    $('mods').appendChild(b);
+  });
+  const st=stats();
+  $('ovTxt').textContent=`${st.answered}/${TOTAL_Q} soalan · ${st.done}/${MODULES.length} modul`;
+  $('ovBar').style.width=(st.answered/TOTAL_Q*100)+'%';
+  $('certSlot').innerHTML = st.allDone
+    ? '<button class="btn gold" id="btnHubCert">🏆 JANA SIJIL PENCAPAIAN</button>'
+    : `<div class="locked">🔒 Sijil dibuka selepas semua ${MODULES.length} modul (${TOTAL_Q} soalan) selesai.</div>`;
+  if(st.allDone) $('btnHubCert').onclick=openCert;
+}
+
+/* ========= LOG MASUK ========= */
+$('loginForm').onsubmit = e=>{
+  e.preventDefault();
+  const nama=$('nama').value.trim(), kelas=$('kelas').value.trim();
+  $('errNama').textContent = nama.length<3 ? '! Sila masukkan nama penuh.' : '';
+  $('errKelas').textContent = !kelas ? '! Sila masukkan kelas.' : '';
+  if(nama.length<3 || !kelas) return;
+  data.user = {nama:nama.toUpperCase(), kelas:kelas.toUpperCase(), masa:new Date().toISOString()};
+  Store.save(data);
+  toast('✔ Data disimpan. Selamat datang!');
+  renderHub(); show('screenHub');
+};
+$('btnLogout').onclick=()=>{ stopTimer(); data.user=null; Store.save(data); $('loginForm').reset(); show('screenStart'); toast('Log keluar berjaya.') };
+
+/* ========= ENJIN KUIZ ========= */
+const T=20;
+let S=null, tick=null;
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+/* ========= SIMPAN & SAMBUNG SESI ========= */
+data.sessions = data.sessions || {};
+function saveSession(){
+  if(!S) return;
+  const pending = (S.locked || S.cur===null) ? [...S.queue] : [S.cur, ...S.queue];
+  data.sessions[S.m.id] = {queue:pending, firstTry:[...S.firstTry], tried:[...S.tried], masa:new Date().toISOString()};
+  Store.save(data);
+}
+function pauseQuiz(){
+  if(!S) return;
+  saveSession(); stopTimer(); S=null;
+  if(window.speechSynthesis) speechSynthesis.cancel();
+  $('modalNote').classList.remove('show');
+  toast('⏸ Kemajuan disimpan. Sambung bila-bila masa.');
+}
+$('btnPause').onclick=()=>{ pauseQuiz(); renderHub(); show('screenHub') };
+function startModule(m){
+  const ss=data.sessions[m.id];
+  if(ss && ss.queue && ss.queue.length){
+    S={m,queue:ss.queue.filter(i=>i<m.q.length),firstTry:new Set(ss.firstTry),tried:new Set(ss.tried),retry:false,cur:null,phase:'q',left:T,locked:false};
+    toast('▶ Menyambung: baki '+S.queue.length+' soalan.');
+  } else {
+    S={m,queue:shuffle(m.q.map((_,i)=>i)),firstTry:new Set(),tried:new Set(),retry:false,cur:null,phase:'q',left:T,locked:false};
+  }
+  show('screenQuiz'); nextQ();
+}
+function nextQ(){
+  if(!S) return;
+  stopTimer();
+  if(!S.queue.length){ return endModule() }
+  S.cur=S.queue.shift();
+  const q=S.m.q[S.cur];
+  const total=S.m.q.length, done=total-S.queue.length-1;
+  $('qMod').textContent=S.m.nama.split(':')[0]+(S.tried.has(S.cur)?' // ULANGAN':'');
+  $('qProg').textContent=`BAKI: ${S.queue.length+1}`;
+  $('qCtx').textContent=q.ctx||''; $('qCtx').style.display=q.ctx?'block':'none';
+  $('qText').textContent=q.q;
+  $('clue').className='clue'; $('clue').textContent='💡 KLUE: '+q.clue;
+  $('opts').innerHTML='';
+  shuffle([q.a,...q.w]).forEach(t=>{
+    const b=document.createElement('button'); b.className='opt'; b.textContent=t;
+    b.onclick=()=>answer(t,b); $('opts').appendChild(b);
+  });
+  S.locked=false; S.phase='q'; $('btnSkip').disabled=false;
+  saveSession();
+  startTimer();
+}
+function startTimer(){
+  S.left=T; $('timer').classList.toggle('clue',S.phase==='clue'); drawT();
+  tick=setInterval(()=>{ S.left--; drawT();
+    if(S.left<=0){ stopTimer();
+      if(S.phase==='q'){ S.phase='clue'; $('clue').classList.add('show'); toast('⏱ Masa tamat! Klue diberikan.'); startTimer() }
+      else answer(null,null);
+    }},1000);
+}
+function drawT(){ $('tbar').style.width=(S.left/T*100)+'%'; $('tsec').textContent=(S.phase==='clue'?'KLUE · ':'')+S.left+'s' }
+function stopTimer(){ clearInterval(tick); tick=null }
+
+function answer(t,btn){
+  if(S.locked) return; S.locked=true; stopTimer(); $('btnSkip').disabled=true;
+  const q=S.m.q[S.cur];
+  document.querySelectorAll('.opt').forEach(b=>{ b.disabled=true; if(b.textContent===q.a) b.classList.add('ok') });
+  if(t===q.a){
+    if(!S.tried.has(S.cur)) S.firstTry.add(S.cur);
+    saveSession(); starBurst(btn); toast('✔ TEPAT!'); setTimeout(nextQ,1300);
+  } else {
+    if(btn) btn.classList.add('bad');
+    S.tried.add(S.cur); S.queue.push(S.cur); saveSession();
+    setTimeout(()=>showNote(q, t===null),700);
+  }
+}
+$('btnSkip').onclick=()=>{
+  if(S.locked) return; stopTimer();
+  S.tried.add(S.cur); S.queue.push(S.cur); toast('⏭ Soalan diulang di akhir sesi.'); nextQ();
+};
+function showNote(q,timeout){
+  $('noteAns').innerHTML=(timeout?'⏱ Masa tamat. ':'')+'Jawapan betul: <b>'+q.a+'</b>';
+  $('noteText').innerHTML=q.note;
+  $('modalNote').classList.add('show');
+  speak('Jawapan yang betul ialah: '+q.a+'. '+q.note.replace(/<[^>]+>/g,''));
+}
+$('btnSpeak').onclick=()=>{ const q=S.m.q[S.cur]; speak('Jawapan yang betul ialah: '+q.a+'. '+q.note.replace(/<[^>]+>/g,'')) };
+$('btnNext').onclick=()=>{ speechSynthesis.cancel(); $('modalNote').classList.remove('show'); nextQ() };
+
+function endModule(){
+  const total=S.m.q.length, skor=S.firstTry.size;
+  data.progress[S.m.id]={skor,total,masa:new Date().toISOString()};
+  data.results.push({modul:S.m.id,skor,total,masa:new Date().toISOString()});
+  delete data.sessions[S.m.id];
+  Store.save(data);
+  $('endScore').textContent=skor+'/'+total;
+  $('endInfo').textContent=`Betul pada cubaan pertama. Semua ${total} soalan telah dijawab dengan betul.`;
+  const st=stats();
+  $('btnEndCert').style.display=st.allDone?'block':'none';
+  show('screenEnd'); starBurst(null);
+  if(st.allDone && !data.certShown){ data.certShown=true; Store.save(data); setTimeout(openCert,1800) }
+}
+$('btnEndCert').onclick=()=>openCert();
+$('btnBack').onclick=()=>{ renderHub(); show('screenHub') };
+
+/* ========= TTS SUARA WANITA ========= */
+let voices=[];
+const loadVoices=()=>voices=speechSynthesis.getVoices();
+if('speechSynthesis' in window){ loadVoices(); speechSynthesis.onvoiceschanged=loadVoices }
+function pickVoice(){
+  const fem=/female|wanita|woman|siti|amira|yasmin|damayanti|gadis|zira|samantha|karen|google/i;
+  const ms=voices.filter(v=>/^(ms|id)/i.test(v.lang));
+  return ms.find(v=>fem.test(v.name)) || ms[0] || voices.find(v=>fem.test(v.name)) || voices[0];
+}
+function speak(text){
+  if(!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text); const v=pickVoice();
+  if(v){u.voice=v;u.lang=v.lang} else u.lang='ms-MY';
+  u.pitch=1.25; u.rate=0.95; speechSynthesis.speak(u);
+}
+
+/* ========= STAR BURST NEON ========= */
+const cv=$('fx'), cx=cv.getContext('2d'); let parts=[], anim=null;
+const fit=()=>{cv.width=innerWidth;cv.height=innerHeight}; fit(); addEventListener('resize',fit);
+function starBurst(el){
+  let x=innerWidth/2,y=innerHeight/2;
+  if(el){const r=el.getBoundingClientRect();x=r.left+r.width/2;y=r.top+r.height/2}
+  const cols=['#00f0ff','#ff2bd6','#f9f871','#3dff9a'];
+  for(let i=0;i<90;i++){const a=Math.random()*Math.PI*2,sp=2+Math.random()*7;
+    parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,c:cols[i%4],s:2+Math.random()*3})}
+  if(!anim) loop();
+}
+function loop(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.08;p.vx*=.98;p.life-=.015;
+    cx.globalAlpha=Math.max(p.life,0);cx.fillStyle=p.c;cx.shadowBlur=15;cx.shadowColor=p.c;
+    cx.beginPath();cx.moveTo(p.x,p.y-p.s*2);cx.lineTo(p.x+p.s*.6,p.y);cx.lineTo(p.x,p.y+p.s*2);cx.lineTo(p.x-p.s*.6,p.y);cx.fill()});
+  parts=parts.filter(p=>p.life>0);
+  anim=parts.length?requestAnimationFrame(loop):(cx.clearRect(0,0,cv.width,cv.height),null);
+}
+
+
+/* ========= STATISTIK ========= */
+function stats(){
+  let skor=0, answered=0, done=0;
+  MODULES.forEach(m=>{ const p=data.progress[m.id];
+    if(p && p.total===m.q.length){ skor+=p.skor; answered+=p.total; done++ } });
+  const pct=Math.round(skor/TOTAL_Q*100);
+  const gred=pct>=85?'A':pct>=70?'B':pct>=55?'C':pct>=40?'D':'E';
+  const tahap=pct>=85?'CEMERLANG':pct>=70?'KEPUJIAN':pct>=55?'BAIK':pct>=40?'MEMUASKAN':'PERLU USAHA';
+  return {skor,answered,done,pct,gred,tahap,allDone:done===MODULES.length};
+}
+function certId(){
+  if(!data.certId){ data.certId='NQ-'+Date.now().toString(36).toUpperCase().slice(-6)+'-'+Math.floor(Math.random()*900+100); Store.save(data) }
+  return data.certId;
+}
+const fmtDate=d=>d.toLocaleDateString('ms-MY',{day:'numeric',month:'long',year:'numeric'});
+
+/* ========= SIJIL NEON (CANVAS → PDF) ========= */
+let certCanvas=null;
+async function drawCert(){
+  try{ await Promise.all([document.fonts.load('900 60px Orbitron'),document.fonts.load('20px "Share Tech Mono"')]) }catch(e){}
+  const W=1754,H=1240,c=document.createElement('canvas'); c.width=W;c.height=H;
+  const g=c.getContext('2d'), st=stats(), u=data.user, CY='#00f0ff', MG='#ff2bd6', YL='#f9f871';
+  // latar
+  g.fillStyle='#05040d'; g.fillRect(0,0,W,H);
+  let rg=g.createRadialGradient(300,250,0,300,250,700); rg.addColorStop(0,'rgba(255,43,214,.25)'); rg.addColorStop(1,'transparent'); g.fillStyle=rg; g.fillRect(0,0,W,H);
+  rg=g.createRadialGradient(W-300,H-250,0,W-300,H-250,700); rg.addColorStop(0,'rgba(0,240,255,.22)'); rg.addColorStop(1,'transparent'); g.fillStyle=rg; g.fillRect(0,0,W,H);
+  g.strokeStyle='rgba(0,240,255,.07)'; g.lineWidth=1;
+  for(let x=0;x<W;x+=44){g.beginPath();g.moveTo(x,0);g.lineTo(x,H);g.stroke()}
+  for(let y=0;y<H;y+=44){g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke()}
+  // bingkai neon
+  const neon=(col,blur,lw,fn)=>{g.save();g.strokeStyle=col;g.shadowColor=col;g.lineWidth=lw;
+    for(const b of [blur,blur/2,0]){g.shadowBlur=b;fn()} g.restore()};
+  const rr=(x,y,w,h,r)=>{g.beginPath();g.roundRect?g.roundRect(x,y,w,h,r):g.rect(x,y,w,h);g.stroke()};
+  neon(CY,40,6,()=>rr(50,50,W-100,H-100,28));
+  neon(MG,30,3,()=>rr(80,80,W-160,H-160,20));
+  // sudut
+  const corner=(x,y,sx,sy)=>neon(YL,25,6,()=>{g.beginPath();g.moveTo(x,y+sy*110);g.lineTo(x,y);g.lineTo(x+sx*110,y);g.stroke()});
+  corner(110,110,1,1);corner(W-110,110,-1,1);corner(110,H-110,1,-1);corner(W-110,H-110,-1,-1);
+  // teks
+  const txt=(t,x,y,font,col,blur=0,align='center')=>{g.save();g.font=font;g.textAlign=align;g.fillStyle=col;g.shadowColor=col;g.shadowBlur=blur;g.fillText(t,x,y);if(blur){g.shadowBlur=blur/2;g.fillText(t,x,y)}g.restore()};
+  const fit=(t,max,size,family,weight='')=>{let s=size;g.font=`${weight} ${s}px ${family}`;while(g.measureText(t).width>max&&s>20){s-=2;g.font=`${weight} ${s}px ${family}`}return `${weight} ${s}px ${family}`};
+  txt('NEON // QUIZ  ·  SAINS TINGKATAN 2',W/2,190,'24px "Share Tech Mono"',CY,10);
+  txt('SIJIL PENCAPAIAN',W/2,300,'900 96px Orbitron','#ffffff',40);
+  txt('CERTIFICATE OF ACHIEVEMENT',W/2,350,'28px "Share Tech Mono"',MG,12);
+  txt('Dengan ini disahkan bahawa',W/2,450,'30px "Share Tech Mono"','#d8f9ff');
+  txt(u.nama,W/2,560,fit(u.nama,W-420,78,'Orbitron','700'),CY,30);
+  neon(MG,20,2,()=>{g.beginPath();g.moveTo(W/2-460,595);g.lineTo(W/2+460,595);g.stroke()});
+  txt('KELAS: '+u.kelas,W/2,650,'32px "Share Tech Mono"','#d8f9ff');
+  txt(`telah berjaya menamatkan kesemua ${TOTAL_Q} soalan ulang kaji (${MODULES.length} modul)`,W/2,725,'30px "Share Tech Mono"','#d8f9ff');
+  txt('Sains Tingkatan 2 – Set 2 dengan keputusan berikut:',W/2,770,'30px "Share Tech Mono"','#d8f9ff');
+  // kotak statistik
+  const boxes=[['SKOR',st.skor+'/'+TOTAL_Q,CY],['PERATUS',st.pct+'%',MG],['GRED',st.gred,YL],['TAHAP',st.tahap,CY]];
+  const bw=330,gap=40,bx=(W-(bw*4+gap*3))/2;
+  boxes.forEach((b,i)=>{const x=bx+i*(bw+gap);
+    neon(b[2],18,3,()=>rr(x,820,bw,150,16));
+    txt(b[0],x+bw/2,865,'22px "Share Tech Mono"','#7fa4b8');
+    txt(b[1],x+bw/2,935,fit(b[1],bw-30,56,'Orbitron','900'),b[2],18)});
+  // kaki
+  const now=new Date();
+  txt('TARIKH: '+fmtDate(now).toUpperCase(),190,1080,'24px "Share Tech Mono"','#d8f9ff',0,'left');
+  txt('ID SIJIL: '+certId(),190,1118,'24px "Share Tech Mono"',MG,6,'left');
+  neon(CY,14,2,()=>{g.beginPath();g.moveTo(W-560,1070);g.lineTo(W-190,1070);g.stroke()});
+  txt('SISTEM NEON QUIZ',W-375,1110,'700 26px Orbitron',CY,12);
+  txt('Pengesahan Digital',W-375,1142,'20px "Share Tech Mono"','#7fa4b8');
+  // lencana
+  neon(YL,30,5,()=>{g.beginPath();g.arc(W/2,1090,62,0,Math.PI*2);g.stroke()});
+  txt('★',W/2,1118,'80px sans-serif',YL,30);
+  certCanvas=c; return c;
+}
+async function openCert(){
+  const st=stats(); if(!st.allDone){ toast('🔒 Selesaikan semua modul dahulu.'); return }
+  show('screenCert'); $('certImg').src=''; toast('⚙ Menjana sijil…');
+  const c=await drawCert(); $('certImg').src=c.toDataURL('image/jpeg',.9); starBurst(null);
+}
+$('btnPdf').onclick=async()=>{
+  if(!window.jspdf){ toast('! Perpustakaan PDF gagal dimuatkan. Semak internet.'); return }
+  const c=certCanvas||await drawCert();
+  const pdf=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  pdf.addImage(c.toDataURL('image/jpeg',.95),'JPEG',0,0,297,210);
+  pdf.setProperties({title:'Sijil Pencapaian NEON QUIZ - '+data.user.nama});
+  pdf.save('Sijil_'+data.user.nama.replace(/[^A-Z0-9]+/gi,'_')+'.pdf');
+  toast('✔ Sijil PDF disimpan.');
+};
+const WA_NUM='60136003994';
+$('btnWa').onclick=()=>{
+  const st=stats(), u=data.user;
+  const lines=MODULES.map((m,i)=>{const p=data.progress[m.id];return `• M${i+1}: ${p?p.skor:0}/${m.q.length}`});
+  const msg=`*SIJIL PENCAPAIAN – NEON QUIZ*\n_Sains Tingkatan 2 (Set 2)_\n\n`+
+    `▸ Nama: ${u.nama}\n▸ Kelas: ${u.kelas}\n\n`+
+    `✔ Skor: *${st.skor}/${TOTAL_Q}* (${st.pct}%)\n★ Gred: *${st.gred}* – ${st.tahap}\n\n`+
+    `*Pecahan modul:*\n${lines.join('\n')}\n\n`+
+    `▸ Tarikh: ${fmtDate(new Date())}\n▸ ID Sijil: ${certId()}`;
+  window.open('https://wa.me/'+WA_NUM+'?text='+encodeURIComponent(msg),'_blank');
+};
+$('btnCertBack').onclick=()=>{ renderHub(); show('screenHub') };
+
+/* ========= RESET RAHSIA ========= */
+const RESET_PWD = '101010';
+$('btnSecret').onclick=()=>{ $('pwd').value=''; $('errPwd').textContent=''; $('modalReset').classList.add('show'); setTimeout(()=>$('pwd').focus(),100) };
+$('btnCancel').onclick=()=>$('modalReset').classList.remove('show');
+function doReset(){
+  if($('pwd').value!==RESET_PWD){ $('errPwd').textContent='! Kata laluan salah. Akses ditolak.'; return }
+  Store.reset(); data=Store.load(); data.progress={}; data.sessions={}; applyZoom(1);
+  $('loginForm').reset(); $('modalReset').classList.remove('show');
+  show('screenStart'); toast('⟲ Semua data telah dipadam.');
+}
+$('btnConfirm').onclick=doReset;
+$('pwd').addEventListener('keydown',e=>{ if(e.key==='Enter') doReset() });
+
+/* ========= INIT ========= */
+applyZoom(data.settings.zoom||1);
+goHome();
+</script>
+</body>
+</html>
