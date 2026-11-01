@@ -2,7 +2,7 @@
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
-<script>/* PANGKALAN DATA (Google Sheets + Drive) — URL Web App Apps Script */ window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby5ciBuZI3j_wgXD6M8pcWwyP9LsOYKDsClXoxEQ_Ndd6kL3oU8bvHK7Qra16s1quRm/exec";</script>
+<script>/* PANGKALAN DATA (Google Sheets + Drive) — URL Web App Apps Script */ window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxr-9Yss7qDR_QgFNL4YAArlDqdfL3uLOo_gUKV37wgS-0UN21KXduqdhRvNAKeuBsg/exec";</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NEON QUIZ // Terminal Tingkatan 2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -138,6 +138,9 @@ input::placeholder{color:#4d6777}
   animation:holo 3s ease-in-out infinite}
 @keyframes holo{0%,100%{box-shadow:0 0 25px rgba(255,43,214,.5)}50%{box-shadow:0 0 40px rgba(0,240,255,.6)}}
 .holo .scan{position:absolute;left:0;right:0;height:2px;background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:scan 2.5s linear infinite;opacity:.6}
+.kelly{display:flex;gap:.55rem;align-items:flex-start;margin:.5rem 0;padding:.55rem .7rem;border-radius:10px;border:1px solid var(--cyan);background:rgba(0,240,255,.09);box-shadow:0 0 12px rgba(0,240,255,.15)}
+.kellyAv{font-size:1.7rem;line-height:1.2;filter:drop-shadow(0 0 6px var(--cyan))}
+.kellySay{font-size:.88rem;line-height:1.5;color:var(--cyan)}
 @keyframes scan{from{top:0}to{top:100%}}
 .note{line-height:1.6;font-size:.95rem}
 .note mark{background:transparent;color:var(--cyan);text-shadow:0 0 8px var(--cyan);border-bottom:1px solid var(--cyan)}
@@ -314,10 +317,14 @@ input::placeholder{color:#4d6777}
 <div class="modal" id="modalNote">
   <div class="glass holo" style="max-width:460px">
     <div class="scan"></div>
-    <h2>◈ DATA HOLOGRAM // NOTA</h2>
+    <h2>◈ CIKGU KELLY // DATA HOLOGRAM</h2>
+    <div class="kelly">
+      <div class="kellyAv">👩‍🏫</div>
+      <div class="kellySay"><b>CIKGU KELLY:</b> <span id="kellyMsg"></span></div>
+    </div>
     <div class="ans" id="noteAns"></div>
     <div class="note" id="noteText"></div>
-    <div class="warnNote">📖 <b>SILA BACA NOTA INI DAN FAHAMKAN.</b><br>Soalan yang sama akan ditanya semula sebentar lagi!</div>
+    <div class="warnNote">📖 <b>CIKGU KELLY PESAN: SILA BACA NOTA INI DAN FAHAMKAN.</b><br>Soalan yang sama akan ditanya semula sebentar lagi!</div>
     <div class="row">
       <button class="btn ghost" id="btnSpeak">🔊 ULANG</button>
       <button class="btn" id="btnNext">TERUS ▶</button>
@@ -854,14 +861,19 @@ $('btnSkip').onclick=()=>{
   S.tried.add(S.cur); S.queue.push(S.cur); toast('⏭ Soalan diulang di akhir sesi.'); nextQ();
 };
 function showNote(q,timeout){
+  const KELLY=['Baca nota ini baik-baik ya!',
+    'Jom faham nota ini sama-sama.',
+    'Tak apa, kita belajar dari kesilapan. Cikgu terangkan ya.',
+    'Ada nota pendek untuk awak. Baca dan fahamkan!'];
+  $('kellyMsg').textContent=KELLY[Math.floor(Math.random()*KELLY.length)];
   $('noteAns').innerHTML=(timeout?'⏱ Masa tamat. ':'')+'Jawapan betul: <b>'+q.a+'</b>';
   $('noteText').innerHTML=q.note;
   $('modalNote').classList.add('show');
   const bn=$('btnNext'); let w=5; bn.disabled=true; bn.textContent='BACA NOTA ('+w+')';
   clearInterval(bn._t); bn._t=setInterval(()=>{ w--; if(w<=0){ clearInterval(bn._t); bn.disabled=false; bn.textContent='SAYA FAHAM ▶' } else bn.textContent='BACA NOTA ('+w+')' },1000);
-  speak('Jawapan yang betul ialah: '+q.a+'. '+q.note.replace(/<[^>]+>/g,'')+'. Sila baca nota ini dan fahamkan. Soalan yang sama akan ditanya semula sebentar lagi.');
+  speak('Hai, saya Cikgu Kelly, cikgu awak. Jawapan yang betul ialah: '+q.a+'. '+q.note.replace(/<[^>]+>/g,'')+'. Sila baca nota ini dan fahamkan. Soalan yang sama akan ditanya semula sebentar lagi.');
 }
-$('btnSpeak').onclick=()=>{ const q=S.m.q[S.cur]; speak('Jawapan yang betul ialah: '+q.a+'. '+q.note.replace(/<[^>]+>/g,'')) };
+$('btnSpeak').onclick=()=>{ const q=S.m.q[S.cur]; speak('Hai, saya Cikgu Kelly. Jawapan yang betul ialah: '+q.a+'. '+q.note.replace(/<[^>]+>/g,'')) };
 $('btnNext').onclick=()=>{ if($('btnNext').disabled) return; speechSynthesis.cancel(); $('modalNote').classList.remove('show'); nextQ() };
 
 function endModule(){
